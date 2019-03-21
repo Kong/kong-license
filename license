@@ -58,6 +58,15 @@ if [ $? -ne 0 ]; then
   [[ $0 != $BASH_SOURCE ]] && return 0 || exit 0
 fi
 
+jq --version > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo "Utility 'jq' was not found, please make sure it is installed"
+  echo "and available in the system path."
+  echo
+  echo "See: https://stedolan.github.io/jq/"
+  echo
+  [[ $0 != $BASH_SOURCE ]] && return 0 || exit 0
+fi
 
 # TODO: print a warning if op version is outdated: op --update
 
@@ -96,11 +105,29 @@ COMPANY=$(echo $KONG_LICENSE_DATA | jq '.license.payload.customer' | sed s/\"//g
 EXPIRE=$(echo $KONG_LICENSE_DATA | jq '.license.payload.license_expiration_date' | sed s/\"//g)
 echo $PRODUCT licensed to $COMPANY, license expires: $EXPIRE
 
-EXPIRE_EPOCH=$(date -jf '%Y-%m-%d' "$EXPIRE" +%s)
+
+# Parsing date is platform specific
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+  # unix variant
+  EXPIRE_EPOCH=$(date --date="$EXPIRE" +%s)
+else
+  # assuming Mac
+  EXPIRE_EPOCH=$(date -jf '%Y-%m-%d' "$EXPIRE" +%s)
+fi
+
 # add one day, because it expires at the end of the day
 EXPIRE_EPOCH=$(expr $EXPIRE_EPOCH + 86400)
 NOW_EPOCH=$(date +%s)
-WARN_EPOCH=$(date -v +10d +%s)
+
+# Parsing date is platform specific
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+  # unix variant
+  WARN_EPOCH=$(date -d "+10 days" +%s)
+else
+  # assuming Mac
+  WARN_EPOCH=$(date -v +10d +%s)
+fi
+
 
 if (( $NOW_EPOCH < $EXPIRE_EPOCH )); then
   # license still valid

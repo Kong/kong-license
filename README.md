@@ -40,14 +40,18 @@ then you cannot just run the script, but MUST use `source` to execute it.
 source kong-license/license
 ```
 
+It is probably best to add the following line to your bash profile:
+
+```
+source kong-license/license --no-update
+```
+
 
 ## Requirements:
 
-There are a number of dependencies, most notably:
+There are a number of dependencies:
 
 - the 1Password [CLI tools to be installed](https://support.1password.com/command-line-getting-started/)
 - [jq](https://stedolan.github.io/jq/) to parse json files
 
-## Known limitations:
 
-It was build for MacOS, and probably won't run on other unixes out of the box.
