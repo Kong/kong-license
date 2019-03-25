@@ -2,7 +2,7 @@
 
 
 # location where to store our files
-LOCATION=~/.kong-license
+LOCATION=~/.kong-license-data
 
 # detect profile
 if [[ "$OSTYPE" == "linux-gnu" ]]; then

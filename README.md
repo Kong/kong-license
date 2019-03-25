@@ -58,12 +58,12 @@ If you want to use the exported `KONG_LICENSE_DATA` environment variable,
 then you cannot just run the script, but MUST use `source` to execute it.
 
 ```
-source ~/.kong-license/license
+source ~/.kong-license-data/license
 ```
 
 It is probably best to add the following line to your bash profile:
 
 ```
-source ~/.kong-license/license --no-update
+source ~/.kong-license-data/license --no-update
 ```
 
