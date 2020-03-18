@@ -1,10 +1,10 @@
 # Kong Inc internal test license script
 
-This script will pull the internal Kong test license from 1Password and
+This script will pull the internal Kong test license from 1Password/Bintray and
 store it locally. 
 
 The intent is to store a single company wide test license, short lived, in
-1Password. And make it easy for everyone to update the local license they use,
+1Password/Bintray. And make it easy for everyone to update the local license they use,
 whilst being able to do rotation of the license on a regular basis.
 
 It will also set the environment variable `KONG_LICENSE_DATA` whenever you open
@@ -23,7 +23,7 @@ command.
 5. When installation is complete you'll get a message about an expired license
    and a command to update it. Copy and execute the given command.
 6. When asked enter your 1Password credentials
-7. Done! You now have the latest license data from 1Password
+7. Done! You now have the latest license data from 1Password/Bintray
 
 ## Usage:
 
