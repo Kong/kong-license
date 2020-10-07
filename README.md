@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/Kong/kong-license.svg?token=oiCtUsXk8yspLqn3VrwK&branch=master)](https://travis-ci.com/Kong/kong-license)
+
 # Kong Inc internal test license script
 
 This script will pull the internal Kong test license from 1Password/Bintray and
