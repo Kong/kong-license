@@ -18,10 +18,9 @@ command.
     - Install `jq`, see https://stedolan.github.io/jq/
     - Install 1Password CLI tools, see [1Password CLI](https://support.1password.com/command-line-getting-started/)
 2. Make sure you did the initial sign-in, see [1Password instructions](https://support.1password.com/command-line-getting-started/#get-started-with-the-command-line-tool)
-3. Download this git repo
-4. Run `./install.sh` from the repo
-5. When installation is complete you'll get a message about an expired license
-   and a command to update it. Copy and execute the given command.
+3. Clone this git repo
+4. Run `make install` from the repo
+5. Run `~/.local/bin/license` from the command line, this will initiate the initial update
 6. When asked enter your 1Password credentials
 7. Done! You now have the latest license data from 1Password/Bintray
 
@@ -32,7 +31,7 @@ Utility to automatically set the Kong Enterprise license
 environment variable 'KONG_LICENSE_DATA' from 1Password.
 
 Usage:
-    kong-license/license [--help | --no-update | --update | --clean]
+    ~/.local/bin/license [--help | --no-update | --update | --clean]
 
     --update    : force update a non-expired license
     --no-update : do not automatically try to update an expired license
@@ -40,7 +39,7 @@ Usage:
     --help      : display this help information
 
 For convenience you can add the following to your bash profile:
-    source kong-license/license --no-update
+    source ~/.local/bin/license --no-update
 ```
 
 When running the script, it will start printing a warning 10 days before the
@@ -58,12 +57,12 @@ If you want to use the exported `KONG_LICENSE_DATA` environment variable,
 then you cannot just run the script, but MUST use `source` to execute it.
 
 ```
-source ~/.kong-license-data/license
+source ~/.local/bin/license
 ```
 
 It is probably best to add the following line to your bash profile:
 
 ```
-source ~/.kong-license-data/license --no-update
+source ~/.local/bin/license --no-update
 ```
 
