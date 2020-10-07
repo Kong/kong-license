@@ -33,7 +33,7 @@ if [ "$1" == "--help" ]; then
   echo "environment variable 'KONG_LICENSE_DATA' from 1Password."
   echo
   echo "Usage:"
-  echo "    $BASH_SOURCE [--help | --no-update | --update | --clean]"
+  echo "    ${BASH_SOURCE[0]} [--help | --no-update | --update | --clean]"
   echo
   echo "    --update    : force update a non-expired license"
   echo "    --no-update : do not automatically try to update an expired license"
@@ -41,10 +41,10 @@ if [ "$1" == "--help" ]; then
   echo "    --help      : display this help information"
   echo
   echo "For convenience you can add the following to your bash profile:"
-  echo "    source $BASH_SOURCE --no-update"
+  echo "    source ${BASH_SOURCE[0]} --no-update"
   echo
   cleanup_kong_license_vars
-  [[ $0 != $BASH_SOURCE ]] && return 0 || exit 0
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
 
@@ -53,7 +53,7 @@ if [ "$1" == "--clean" ]; then
   rmdir "$LOCATION"  > /dev/null 2>&1
   echo "Removed cached files"
   cleanup_kong_license_vars
-  [[ $0 != $BASH_SOURCE ]] && return 0 || exit 0
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
 
@@ -67,7 +67,7 @@ if [ $? -ne 0 ]; then
   echo "Use --help for info."
   echo
   cleanup_kong_license_vars
-  [[ $0 != $BASH_SOURCE ]] && return 0 || exit 0
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
 jq --version > /dev/null 2>&1
@@ -78,19 +78,19 @@ if [ $? -ne 0 ]; then
   echo "See: https://stedolan.github.io/jq/"
   echo
   cleanup_kong_license_vars
-  [[ $0 != $BASH_SOURCE ]] && return 0 || exit 0
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
 # TODO: print a warning if op version is outdated: op --update
 
 
 # check if we're sourced or run
-if [ "$0" == "$BASH_SOURCE" ]; then
+if [ "$0" == "${BASH_SOURCE[0]}" ]; then
   echo
   echo "[WARNING] running this script will check/update the locally cached"
   echo "license file, but will not export it as KONG_LICENSE_DATA."
   echo "To export it you must 'source' this script, e.g. run:"
-  echo "    source $BASH_SOURCE $@"
+  echo "    source ${BASH_SOURCE[0]} $*"
   echo
 fi
 
@@ -113,10 +113,10 @@ fi
 
 # set the license data
 export KONG_LICENSE_DATA=$(<"$FILENAME")
-PRODUCT=$(echo $KONG_LICENSE_DATA | jq '.license.payload.product_subscription' | sed s/\"//g)
-COMPANY=$(echo $KONG_LICENSE_DATA | jq '.license.payload.customer' | sed s/\"//g)
-EXPIRE=$(echo $KONG_LICENSE_DATA | jq '.license.payload.license_expiration_date' | sed s/\"//g)
-echo $PRODUCT licensed to $COMPANY, license expires: $EXPIRE
+PRODUCT=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.product_subscription' | sed s/\"//g)
+COMPANY=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.customer' | sed s/\"//g)
+EXPIRE=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.license_expiration_date' | sed s/\"//g)
+echo "$PRODUCT licensed to $COMPANY, license expires: $EXPIRE"
 
 
 # Parsing date is platform specific
@@ -129,7 +129,7 @@ else
 fi
 
 # add one day, because it expires at the end of the day
-EXPIRE_EPOCH=$(expr $EXPIRE_EPOCH + 86400)
+EXPIRE_EPOCH=$((EXPIRE_EPOCH + 86400))
 NOW_EPOCH=$(date +%s)
 
 # Parsing date is platform specific
@@ -142,18 +142,18 @@ else
 fi
 
 
-if (( $NOW_EPOCH < $EXPIRE_EPOCH )); then
+if (( NOW_EPOCH < EXPIRE_EPOCH )); then
   # license still valid
-  if (( $WARN_EPOCH > $EXPIRE_EPOCH )); then
+  if (( WARN_EPOCH > EXPIRE_EPOCH )); then
     # Expiry is within 10 days
-    EXPIRE_IN=$(expr $EXPIRE_EPOCH - $NOW_EPOCH )
-    EXPIRE_IN=$(expr $EXPIRE_IN / 86400 )
+    EXPIRE_IN=$((EXPIRE_EPOCH - NOW_EPOCH))
+    EXPIRE_IN=$((EXPIRE_IN / 86400))
     printf '\e[1;33m%-6s\e[m' "[WARNING] The license will expire in less than $EXPIRE_IN days!"
     if [ ! "$1" == "--update" ]; then
       # only display instructions if we're not already updating
       echo
       echo "run the following command to initiate an update:"
-      echo "    source $BASH_SOURCE --update"
+      echo "    source ${BASH_SOURCE[0]} --update"
     fi
   fi
 
@@ -161,7 +161,7 @@ if (( $NOW_EPOCH < $EXPIRE_EPOCH )); then
   if [ ! "$1" == "--update" ]; then
     # all is well, we're done
     cleanup_kong_license_vars
-    [[ $0 != $BASH_SOURCE ]] && return 0 || exit 0
+    [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
   fi
 
 else
@@ -172,9 +172,9 @@ else
   if [ "$1" == "--no-update" ]; then
     echo
     echo "run the following command to initiate an update:"
-    echo "    source $BASH_SOURCE"
+    echo "    source ${BASH_SOURCE[0]}"
     cleanup_kong_license_vars
-    [[ $0 != $BASH_SOURCE ]] && return 0 || exit 0
+    [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
   fi
 fi
 
@@ -185,31 +185,31 @@ echo "Logging into 1Password..."
 OP_TOKEN=$(op signin $OP_ACCOUNT --output=raw)
 if [ ! $? == 0 ]; then
   # an error while logging into 1Password
-  echo [ERROR] Failed to get a 1Password token, license data not updated.
+  echo "[ERROR] Failed to get a 1Password token, license data not updated."
   cleanup_kong_license_vars
-  [[ $0 != $BASH_SOURCE ]] && return 1 || exit 1
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
 
 # Get the Bintray credentials
-DETAILS=$(op get item $OP_UUID --session=$OP_TOKEN)
+DETAILS=$(op get item $OP_UUID --session="$OP_TOKEN")
 if [ ! $? == 0 ]; then
   # an error while fetching the Bintray keys
-  echo [ERROR] Failed to get the data from 1Password, license data not updated.
+  echo "[ERROR] Failed to get the data from 1Password, license data not updated."
   # sign out again
-  op signout --session=$OP_TOKEN
+  op signout --session="$OP_TOKEN"
   cleanup_kong_license_vars
-  [[ $0 != $BASH_SOURCE ]] && return 1 || exit 1
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
 
 # sign out again
-op signout --session=$OP_TOKEN
+op signout --session="$OP_TOKEN"
 
 
-BINTRAY_APIKEY=$(echo $DETAILS | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
-BINTRAY_USERNAME=$(echo $DETAILS | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
-BINTRAY_REPO=$(echo $DETAILS | jq '.details.sections[].fields[]? | select(.t=="Package/Repository").v' | sed s/\"//g)
+BINTRAY_APIKEY=$(echo "$DETAILS" | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
+BINTRAY_USERNAME=$(echo "$DETAILS" | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
+BINTRAY_REPO=$(echo "$DETAILS" | jq '.details.sections[].fields[]? | select(.t=="Package/Repository").v' | sed s/\"//g)
 
 
 echo "Downloading license..."
@@ -218,27 +218,27 @@ if [[ ! $NEW_KEY == *"signature"* || ! $NEW_KEY == *"payload"* ]]; then
   echo "[ERROR] failed to download the Kong Enterprise license file
     $NEW_KEY"
   cleanup_kong_license_vars
-  [[ $0 != $BASH_SOURCE ]] && return 1 || exit 1
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
 
 # validate it is different
-OLD_SIG=$(echo $KONG_LICENSE_DATA | jq '.license.signature' | sed s/\"//g)
-NEW_SIG=$(echo $NEW_KEY | jq '.license.signature' | sed s/\"//g)
+OLD_SIG=$(echo "$KONG_LICENSE_DATA" | jq '.license.signature' | sed s/\"//g)
+NEW_SIG=$(echo "$NEW_KEY" | jq '.license.signature' | sed s/\"//g)
 
 if [ "$OLD_SIG" == "$NEW_SIG" ]; then
-  echo [ERROR] The new license is the same as the old one, seems the Bintray license was not updated yet.
+  echo "[ERROR] The new license is the same as the old one, seems the Bintray license was not updated yet."
   cleanup_kong_license_vars
-  [[ $0 != $BASH_SOURCE ]] && return 1 || exit 1
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
-echo $NEW_KEY > "$FILENAME"
+echo "$NEW_KEY" > "$FILENAME"
 echo license updated!
 
 # set the license data
 export KONG_LICENSE_DATA=$(<"$FILENAME")
-PRODUCT=$(echo $KONG_LICENSE_DATA | jq '.license.payload.product_subscription' | sed s/\"//g)
-COMPANY=$(echo $KONG_LICENSE_DATA | jq '.license.payload.customer' | sed s/\"//g)
-EXPIRE=$(echo $KONG_LICENSE_DATA | jq '.license.payload.license_expiration_date' | sed s/\"//g)
-echo $PRODUCT licensed to $COMPANY, license expires: $EXPIRE
+PRODUCT=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.product_subscription' | sed s/\"//g)
+COMPANY=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.customer' | sed s/\"//g)
+EXPIRE=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.license_expiration_date' | sed s/\"//g)
+echo "$PRODUCT licensed to $COMPANY, license expires: $EXPIRE"
 cleanup_kong_license_vars
