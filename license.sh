@@ -28,7 +28,7 @@ function cleanup_kong_license_vars {
 }
 
 
-if [ "$1" == "--help" ]; then
+if [[ "$1" == "--help" ]]; then
   echo "Utility to automatically set the Kong Enterprise license"
   echo "environment variable 'KONG_LICENSE_DATA' from 1Password."
   echo
@@ -48,7 +48,7 @@ if [ "$1" == "--help" ]; then
 fi
 
 
-if [ "$1" == "--clean" ]; then
+if [[ "$1" == "--clean" ]]; then
   rm "$FILENAME"  > /dev/null 2>&1
   rmdir "$LOCATION"  > /dev/null 2>&1
   echo "Removed cached files"
@@ -58,7 +58,7 @@ fi
 
 
 op --version > /dev/null 2>&1
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
   echo "The 1Password CLI utility 'op' was not found"
   echo "Please download and do the initial signin"
   echo
@@ -71,7 +71,7 @@ if [ $? -ne 0 ]; then
 fi
 
 jq --version > /dev/null 2>&1
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
   echo "Utility 'jq' was not found, please make sure it is installed"
   echo "and available in the system path."
   echo
@@ -85,7 +85,7 @@ fi
 
 
 # check if we're sourced or run
-if [ "$0" == "${BASH_SOURCE[0]}" ]; then
+if [[ "$0" == "${BASH_SOURCE[0]}" ]]; then
   echo
   echo "[WARNING] running this script will check/update the locally cached"
   echo "license file, but will not export it as KONG_LICENSE_DATA."
@@ -96,13 +96,13 @@ fi
 
 
 # create directory if it doesn't exist
-if [ ! -d "$LOCATION" ]; then
+if [[ ! -d "$LOCATION" ]]; then
   mkdir "$LOCATION"
 fi
 
 
 # create outdated license if it doesn't exist
-if [ ! -f "$FILENAME" ]; then
+if [[ ! -f "$FILENAME" ]]; then
   cat >"$FILENAME" <<EOL
 {"license":{"signature":"abf7652244fd9bee5fe385624f9e206425bdde6a27137f51dbfa2551971bea4f653e5b6364d66d42fb412df692ef43cf1694ccad047c413818c0149f56428e","payload":{"customer":"Kong Inc.","license_creation_date":"2018-11-15","product_subscription":"Kong Enterprise Edition","admin_seats":"50","support_plan":"None","license_expiration_date":"2019-01-01","license_key":"ASDASDASDASDASDASDASDASDASD_a1VASASD"},"version":1}}
 EOL
@@ -149,7 +149,7 @@ if (( NOW_EPOCH < EXPIRE_EPOCH )); then
     EXPIRE_IN=$((EXPIRE_EPOCH - NOW_EPOCH))
     EXPIRE_IN=$((EXPIRE_IN / 86400))
     printf '\e[1;33m%-6s\e[m' "[WARNING] The license will expire in less than $EXPIRE_IN days!"
-    if [ ! "$1" == "--update" ]; then
+    if [[ ! "$1" == "--update" ]]; then
       # only display instructions if we're not already updating
       echo
       echo "run the following command to initiate an update:"
@@ -158,7 +158,7 @@ if (( NOW_EPOCH < EXPIRE_EPOCH )); then
   fi
 
   # check if we're forcing an update, despite being valid
-  if [ ! "$1" == "--update" ]; then
+  if [[ ! "$1" == "--update" ]]; then
     # all is well, we're done
     cleanup_kong_license_vars
     [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
@@ -169,7 +169,7 @@ else
   printf '\e[1;31m%-6s\e[m' "[WARNING] The license has expired!"
 
   # Check if we need to skip updating, despite being outdated
-  if [ "$1" == "--no-update" ]; then
+  if [[ "$1" == "--no-update" ]]; then
     echo
     echo "run the following command to initiate an update:"
     echo "    source ${BASH_SOURCE[0]}"
@@ -183,7 +183,7 @@ fi
 echo
 echo "Logging into 1Password..."
 OP_TOKEN=$(op signin $OP_ACCOUNT --output=raw)
-if [ ! $? == 0 ]; then
+if [[ ! $? == 0 ]]; then
   # an error while logging into 1Password
   echo "[ERROR] Failed to get a 1Password token, license data not updated."
   cleanup_kong_license_vars
@@ -193,7 +193,7 @@ fi
 
 # Get the Bintray credentials
 DETAILS=$(op get item $OP_UUID --session="$OP_TOKEN")
-if [ ! $? == 0 ]; then
+if [[ ! $? == 0 ]]; then
   # an error while fetching the Bintray keys
   echo "[ERROR] Failed to get the data from 1Password, license data not updated."
   # sign out again
@@ -226,7 +226,7 @@ fi
 OLD_SIG=$(echo "$KONG_LICENSE_DATA" | jq '.license.signature' | sed s/\"//g)
 NEW_SIG=$(echo "$NEW_KEY" | jq '.license.signature' | sed s/\"//g)
 
-if [ "$OLD_SIG" == "$NEW_SIG" ]; then
+if [[ "$OLD_SIG" == "$NEW_SIG" ]]; then
   echo "[ERROR] The new license is the same as the old one, seems the Bintray license was not updated yet."
   cleanup_kong_license_vars
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
