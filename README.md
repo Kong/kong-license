@@ -67,4 +67,4 @@ It is probably best to add the following line to your bash profile:
 ```
 source ~/.local/bin/license --no-update
 ```
-
+To update the license in bintray, upload the new license.json file to here: https://bintray.com/beta/#/kong/kong/license?tab=files
