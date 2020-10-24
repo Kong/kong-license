@@ -207,9 +207,9 @@ fi
 op signout --session="$OP_TOKEN"
 
 
-BINTRAY_APIKEY=$(echo "$DETAILS" | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
-BINTRAY_USERNAME=$(echo "$DETAILS" | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
-BINTRAY_REPO=$(echo "$DETAILS" | jq '.details.sections[].fields[]? | select(.t=="Package/Repository").v' | sed s/\"//g)
+BINTRAY_APIKEY=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
+BINTRAY_USERNAME=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
+BINTRAY_REPO=$(printf "%s" "$DETAILS" | jq '.details.sections[].fields[]? | select(.t=="Package/Repository").v' | sed s/\"//g)
 
 
 echo "Downloading license..."
