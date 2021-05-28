@@ -113,9 +113,9 @@ fi
 
 # set the license data
 export KONG_LICENSE_DATA=$(<"$FILENAME")
-PRODUCT=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.product_subscription' | sed s/\"//g)
-COMPANY=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.customer' | sed s/\"//g)
-EXPIRE=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.license_expiration_date' | sed s/\"//g)
+PRODUCT=$(jq -r '.license.payload.product_subscription' <<< "$KONG_LICENSE_DATA")
+COMPANY=$(jq -r '.license.payload.customer' <<< "$KONG_LICENSE_DATA")
+EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<< "$KONG_LICENSE_DATA")
 echo "$PRODUCT licensed to $COMPANY, license expires: $EXPIRE"
 
 
@@ -221,8 +221,8 @@ fi
 
 
 # validate it is different
-OLD_SIG=$(echo "$KONG_LICENSE_DATA" | jq '.license.signature' | sed s/\"//g)
-NEW_SIG=$(echo "$NEW_KEY" | jq '.license.signature' | sed s/\"//g)
+OLD_SIG=$(jq -r '.license.signature' <<<"$KONG_LICENSE_DATA")
+NEW_SIG=$(jq -r '.license.signature' <<<"$NEW_KEY")
 
 if [[ "$OLD_SIG" == "$NEW_SIG" ]]; then
   echo "[ERROR] The new license is the same as the old one, seems the Pulp license was not updated yet."
@@ -235,8 +235,8 @@ echo license updated!
 
 # set the license data
 export KONG_LICENSE_DATA=$(<"$FILENAME")
-PRODUCT=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.product_subscription' | sed s/\"//g)
-COMPANY=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.customer' | sed s/\"//g)
-EXPIRE=$(echo "$KONG_LICENSE_DATA" | jq '.license.payload.license_expiration_date' | sed s/\"//g)
+PRODUCT=$(jq -r '.license.payload.product_subscription' <<< "$KONG_LICENSE_DATA")
+COMPANY=$(jq -r '.license.payload.customer' <<< "$KONG_LICENSE_DATA")
+EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<< "$KONG_LICENSE_DATA")
 echo "$PRODUCT licensed to $COMPANY, license expires: $EXPIRE"
 cleanup_kong_license_vars
