@@ -2,11 +2,11 @@
 
 # Kong Inc internal test license script
 
-This script will pull the internal Kong test license from 1Password/Bintray and
+This script will pull the internal Kong test license from 1Password/Pulp and
 store it locally. 
 
 The intent is to store a single company wide test license, short lived, in
-1Password/Bintray. And make it easy for everyone to update the local license they use,
+1Password/Pulp. And make it easy for everyone to update the local license they use,
 whilst being able to do rotation of the license on a regular basis.
 
 It will also set the environment variable `KONG_LICENSE_DATA` whenever you open
@@ -14,9 +14,13 @@ up a new terminal, so it is easy to pass to Kong. 10 days before the license
 expires it will start printing warnings, accompanied by the proper update
 command.
 
+---
+
 ## 1Password Shared Vault Access
 
 Before continuing, make sure you have access to the "Shared" vault in 1Password. You can request access to this vault via the `#it` Kong slack channel. There is an example request [here](https://kongstrong.slack.com/archives/C5B4SU6KC/p1615993209037400) that can be referenced if it's not clear what is being requested from the IT team.
+
+---
 
 ## Installation
 
@@ -29,6 +33,8 @@ Before continuing, make sure you have access to the "Shared" vault in 1Password.
 5. Run `~/.local/bin/license` from the command line, this will initiate the initial update
 6. When asked enter your 1Password credentials
 7. Done! You now have the latest license data from 1Password/Bintray
+
+---
 
 ## Usage
 
@@ -64,7 +70,26 @@ It is probably best to add the following line to your bash/zsh profile:
 source ~/.local/bin/license --no-update
 ```
 
-To update the license in bintray, upload the new license.json file to here: https://bintray.com/beta/#/kong/kong/license?tab=files
+---
+
+## Uploading a license
+
+To update the license in Pulp, the [release_scripts](https://github.com/Kong/release-scripts) Docker image
+can be used
+
+```
+docker run -e PULP_USERNAME="<username>" \
+           -e PULP_PASSWORD="<password>" \
+           -e PULP_HOST="https://api.pulp.konnect-prod.konghq.com" \
+           -v ${PWD}/license.json:/license.json:ro \
+           -it release-script \
+           --package-type license \
+           --file /license.json
+```
+
+**Note**: Credentials for the production Pulp API can be obtained in 1Password shared vault.
+
+---
 
 ## Troubleshooting
 
@@ -73,7 +98,7 @@ To update the license in bintray, upload the new license.json file to here: http
 If you see an error similar to the following:
 
 ```
-[ERROR] 2021/03/16 08:59:05 "dkuc26kncfeepcrnr32aybvguy" isn't an item in any vault.
+[ERROR] 2021/03/16 08:59:05 "c5jg2oc6wzg6ffs2awxeohrnmm" isn't an item in any vault.
 ```
 
 This means that you don't have access to the shared vault in 1Password. See [above](#1password-shared-vault-access) for more information on how to get the necessary access.

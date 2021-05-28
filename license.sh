@@ -11,11 +11,11 @@ FILE=license.json
 OP_ACCOUNT=team_kong
 
 # License entry uuid, use `op list items | jq` to find the right uuid.
-OP_UUID=dkuc26kncfeepcrnr32aybvguy
-
+OP_UUID=c5jg2oc6wzg6ffs2awxeohrnmm
 
 # Nothing to customize below
 FILENAME="$LOCATION/$FILE"
+KONG_PULP_URL="https://download.konghq.com/internal/kong-gateway/license.json"
 
 
 function cleanup_kong_license_vars {
@@ -23,7 +23,7 @@ function cleanup_kong_license_vars {
   unset PRODUCT COMPANY EXPIRE
   unset EXPIRE_EPOCH NOW_EPOCH WARN_EPOCH EXPIRE_IN
   unset OP_TOKEN OP_UUID DETAILS
-  unset BINTRAY_APIKEY BINTRAY_USERNAME BINTRAY_REPO
+  unset KONG_PULP_PWD KONG_PULP_USER KONG_PULP_URL
   unset NEW_KEY OLD_SIG NEW_SIG
 }
 
@@ -191,10 +191,10 @@ if [[ ! $? == 0 ]]; then
 fi
 
 
-# Get the Bintray credentials
+# Get the Pulp credentials
 DETAILS=$(op get item $OP_UUID --session="$OP_TOKEN")
 if [[ ! $? == 0 ]]; then
-  # an error while fetching the Bintray keys
+  # an error while fetching the Pulp keys
   echo "[ERROR] Failed to get the data from 1Password, license data not updated."
   # sign out again
   op signout --session="$OP_TOKEN"
@@ -202,18 +202,16 @@ if [[ ! $? == 0 ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
-
 # sign out again
 op signout --session="$OP_TOKEN"
 
 
-BINTRAY_APIKEY=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
-BINTRAY_USERNAME=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
-BINTRAY_REPO=$(printf "%s" "$DETAILS" | jq '.details.sections[].fields[]? | select(.t=="Package/Repository").v' | sed s/\"//g)
+KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
+KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
 
 
 echo "Downloading license..."
-NEW_KEY=$(curl -s -L -u"$BINTRAY_USERNAME:$BINTRAY_APIKEY" "https://kong.bintray.com/$BINTRAY_REPO/license.json")
+NEW_KEY=$(curl -s -L -u"$KONG_PULP_USER:$KONG_PULP_PWD" "$KONG_PULP_URL")
 if [[ ! $NEW_KEY == *"signature"* || ! $NEW_KEY == *"payload"* ]]; then
   echo "[ERROR] failed to download the Kong Enterprise license file
     $NEW_KEY"
@@ -227,7 +225,7 @@ OLD_SIG=$(echo "$KONG_LICENSE_DATA" | jq '.license.signature' | sed s/\"//g)
 NEW_SIG=$(echo "$NEW_KEY" | jq '.license.signature' | sed s/\"//g)
 
 if [[ "$OLD_SIG" == "$NEW_SIG" ]]; then
-  echo "[ERROR] The new license is the same as the old one, seems the Bintray license was not updated yet."
+  echo "[ERROR] The new license is the same as the old one, seems the Pulp license was not updated yet."
   cleanup_kong_license_vars
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
