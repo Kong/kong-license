@@ -3,7 +3,7 @@
 # Kong Inc internal test license script
 
 This script will pull the internal Kong test license from 1Password/Pulp and
-store it locally. 
+store it locally.
 
 The intent is to store a single company wide test license, short lived, in
 1Password/Pulp. And make it easy for everyone to update the local license they use,
@@ -82,7 +82,7 @@ docker run -e PULP_USERNAME="<username>" \
            -e PULP_PASSWORD="<password>" \
            -e PULP_HOST="https://api.pulp.konnect-prod.konghq.com" \
            -v ${PWD}/license.json:/license.json:ro \
-           -it release-script \
+           -it kong/release-script \
            --package-type license \
            --file /license.json
 ```
