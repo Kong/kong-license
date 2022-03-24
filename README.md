@@ -2,6 +2,14 @@
 
 # Kong Inc internal test license script
 
+There are 2 scripts;
+
+1. [user script](#user-script)
+2. [automation script](#automation-script)
+
+
+# User script
+
 This script will pull the internal Kong test license from 1Password/Pulp and
 store it locally.
 
@@ -72,7 +80,32 @@ source ~/.local/bin/license --no-update
 
 ---
 
-## Uploading a license
+# Automation script
+
+The `auto-license.sh` script will download the Kong license file given a Pulp
+password, and pass it to `stdout`. The script will take the Pulp password either
+via `stdin` or from the environment variable `PULP_PASSWORD`.
+The `PULP_USERNAME` environment variable is optional, and will default to
+`admin`.
+
+Note that this just exchanges one secret problem (the license) for another (the
+Pulp password), but in many cases the latter is already available, and in those
+cases this helps prevent having yet another secret.
+
+Example use:
+```shell
+# assumes PULP_PASSWORD is set
+git clone --depth=1 --single-branch https://github.com/Kong/kong-license.git
+export KONG_LICENSE_DATA=$(./kong-license/auto-license.sh)
+
+# assumes the Pulp password is stored in THE_PASSWORD
+git clone --depth=1 --single-branch https://github.com/Kong/kong-license.git
+export KONG_LICENSE_DATA=$(./kong-license/auto-license.sh <<< "$THE_PASSWORD")
+```
+
+---
+
+# Uploading a license
 
 To update the license in Pulp, the [release_scripts](https://github.com/Kong/release-scripts) Docker image
 can be used
@@ -91,9 +124,9 @@ docker run -e PULP_USERNAME="<username>" \
 
 ---
 
-## Troubleshooting
+# Troubleshooting
 
-### Seeing error "isn't an item in any vault"
+## Seeing error "isn't an item in any vault"
 
 If you see an error similar to the following:
 
