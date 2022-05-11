@@ -25,12 +25,16 @@ function cleanup_kong_license_vars {
   unset OP_TOKEN OP_UUID DETAILS
   unset KONG_PULP_PWD KONG_PULP_USER KONG_PULP_URL
   unset NEW_KEY OLD_SIG NEW_SIG
+  unset OP_SIGNIN_PARAMS OP_GET_CMD OP_SIGNOUT_PARAMS
 }
 
 
 if [[ "$1" == "--help" ]]; then
   echo "Utility to automatically set the Kong Enterprise license"
   echo "environment variable 'KONG_LICENSE_DATA' from 1Password."
+  echo
+  echo "Prerequisite to have 1Password CLI installed"
+  echo "Versions 1 and 2 are currently supported"
   echo
   echo "Usage:"
   echo "    ${BASH_SOURCE[0]} [--help | --no-update | --update | --clean]"
@@ -57,7 +61,10 @@ if [[ "$1" == "--clean" ]]; then
 fi
 
 
-op --version > /dev/null 2>&1
+#Check 1Password CLI version
+echo
+echo "Checking 1Password CLI version"
+OP_VERSION=$(op --version)
 if [[ $? -ne 0 ]]; then
   echo "The 1Password CLI utility 'op' was not found"
   echo "Please download and do the initial signin"
@@ -69,8 +76,39 @@ if [[ $? -ne 0 ]]; then
   cleanup_kong_license_vars
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
+echo "1Password CLI version $OP_VERSION found"
 
-jq --version > /dev/null 2>&1
+#Now estabilished op CLI exists, need to set params for each version
+#Set for op_CLIv2
+OP_SIGNIN_PARAMS="--account $OP_ACCOUNT --raw"
+OP_GET_CMD="item get"
+OP_SIGNOUT_PARAMS=""
+
+# Crude version check and set parameters to match
+if [[ $OP_VERSION == 1* ]]; then
+  echo "[INFO] Please upgrade to v2 for longer support"
+  echo "[INFO] https://1password.com/downloads/command-line/"
+  #Set for op_CLIv1
+  OP_SIGNIN_PARAMS="$OP_ACCOUNT --output=raw"
+  OP_GET_CMD="get item"
+  OP_SIGNOUT_PARAMS="--session=$OP_TOKEN"
+elif [[ $OP_VERSION != 2* ]]; then
+  echo "The 1Password CLI utility 'op' version found is not supported by this script"
+  echo "Currently supporting v1 (legacy) and v2 (latest as of 2022-05)"
+  echo "Please download v2 and do the initial signin"
+  echo
+  echo "See: https://1password.com/downloads/command-line/"
+  echo "and https://support.1password.com/command-line-getting-started/"
+  echo
+  echo "Use --help for info."
+  echo
+  cleanup_kong_license_vars
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
+fi
+
+echo
+echo "Checking 'jq' installed"
+JQ_VERSION=$(jq --version)
 if [[ $? -ne 0 ]]; then
   echo "Utility 'jq' was not found, please make sure it is installed"
   echo "and available in the system path."
@@ -80,8 +118,7 @@ if [[ $? -ne 0 ]]; then
   cleanup_kong_license_vars
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
-
-# TODO: print a warning if op version is outdated: op --update
+echo "'jq' version $JQ_VERSION found"
 
 
 # check if we're sourced or run
@@ -178,11 +215,13 @@ else
   fi
 fi
 
-
-# sign in to 1Password
 echo
+# sign in to 1Password
 echo "Logging into 1Password..."
-OP_TOKEN=$(op signin $OP_ACCOUNT --output=raw)
+OP_TOKEN=$(
+  # shellcheck disable=SC2086 
+  op signin $OP_SIGNIN_PARAMS
+)
 if [[ ! $? == 0 ]]; then
   # an error while logging into 1Password
   echo "[ERROR] Failed to get a 1Password token, license data not updated."
@@ -192,23 +231,40 @@ fi
 
 
 # Get the Pulp credentials
-DETAILS=$(op get item $OP_UUID --session="$OP_TOKEN")
+echo "Get credentials from 1Password..."
+DETAILS=$(
+  # shellcheck disable=SC2086 
+  op $OP_GET_CMD $OP_UUID --session $OP_TOKEN --format json
+)
 if [[ ! $? == 0 ]]; then
   # an error while fetching the Pulp keys
   echo "[ERROR] Failed to get the data from 1Password, license data not updated."
   # sign out again
-  op signout --session="$OP_TOKEN"
+  op signout
   cleanup_kong_license_vars
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
 # sign out again
-op signout --session="$OP_TOKEN"
+echo "Sign out of 1Password..."
+# shellcheck disable=SC2086 
+op signout $OP_SIGNOUT_PARAMS
 
-
-KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
-KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
-
+#Extract UID and PWD from 1Password response depending on version
+if [[ $OP_VERSION == 1* ]]; then
+  KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
+  KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
+elif [[ $OP_VERSION == 2* ]]; then
+  KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="password").value' | sed s/\"//g)
+  KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="username").value' | sed s/\"//g)
+else
+  #How did we get here?
+  echo "The 1Password CLI utility 'op' version found is not supported by this script"
+  echo "Use --help for info."
+  echo
+  cleanup_kong_license_vars
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
+fi
 
 echo "Downloading license..."
 NEW_KEY=$(curl -s -L -u"$KONG_PULP_USER:$KONG_PULP_PWD" "$KONG_PULP_URL")
