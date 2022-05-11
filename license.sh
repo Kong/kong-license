@@ -91,7 +91,7 @@ if [[ $OP_VERSION == 1* ]]; then
   #Set for op_CLIv1
   OP_SIGNIN_PARAMS="$OP_ACCOUNT --output=raw"
   OP_GET_CMD="get item"
-  OP_SIGNOUT_PARAMS="--session="$OP_TOKEN""
+  OP_SIGNOUT_PARAMS="--session=$OP_TOKEN"
 elif [[ $OP_VERSION != 2* ]]; then
   echo "The 1Password CLI utility 'op' version found is not supported by this script"
   echo "Currently supporting v1 (legacy) and v2 (latest as of 2022-05)"
@@ -218,7 +218,10 @@ fi
 echo
 # sign in to 1Password
 echo "Logging into 1Password..."
-OP_TOKEN=$(op signin $OP_SIGNIN_PARAMS)
+OP_TOKEN=$(
+  # shellcheck disable=SC2086 
+  op signin $OP_SIGNIN_PARAMS
+)
 if [[ ! $? == 0 ]]; then
   # an error while logging into 1Password
   echo "[ERROR] Failed to get a 1Password token, license data not updated."
@@ -229,7 +232,10 @@ fi
 
 # Get the Pulp credentials
 echo "Get credentials from 1Password..."
-DETAILS=$(op $OP_GET_CMD $OP_UUID --session $OP_TOKEN --format json)
+DETAILS=$(
+  # shellcheck disable=SC2086 
+  op $OP_GET_CMD $OP_UUID --session $OP_TOKEN --format json
+)
 if [[ ! $? == 0 ]]; then
   # an error while fetching the Pulp keys
   echo "[ERROR] Failed to get the data from 1Password, license data not updated."
@@ -241,6 +247,7 @@ fi
 
 # sign out again
 echo "Sign out of 1Password..."
+# shellcheck disable=SC2086 
 op signout $OP_SIGNOUT_PARAMS
 
 #Extract UID and PWD from 1Password response depending on version
