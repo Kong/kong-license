@@ -33,8 +33,9 @@ if [[ "$1" == "--help" ]]; then
   echo "Utility to automatically set the Kong Enterprise license"
   echo "environment variable 'KONG_LICENSE_DATA' from 1Password."
   echo
-  echo "Prerequisite to have 1Password CLI installed"
-  echo "Versions 1 and 2 are currently supported"
+  echo "Prerequisites:"
+  echo " - 'jq' installed, see https://stedolan.github.io/jq/"
+  echo " - 1Password CLI installed (Versions 1 and 2 are currently supported)"
   echo
   echo "Usage:"
   echo "    ${BASH_SOURCE[0]} [--help | --no-update | --update | --clean]"
