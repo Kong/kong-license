@@ -63,8 +63,6 @@ fi
 
 
 #Check 1Password CLI version
-echo
-echo "Checking 1Password CLI version"
 OP_VERSION=$(op --version)
 if [[ $? -ne 0 ]]; then
   echo "The 1Password CLI utility 'op' was not found"
@@ -77,7 +75,6 @@ if [[ $? -ne 0 ]]; then
   cleanup_kong_license_vars
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
-echo "1Password CLI version $OP_VERSION found"
 
 #Now estabilished op CLI exists, need to set params for each version
 #Set for op_CLIv2
@@ -87,6 +84,7 @@ OP_SIGNOUT_PARAMS=""
 
 # Crude version check and set parameters to match
 if [[ $OP_VERSION == 1* ]]; then
+  echo "[INFO] Found 1Password CLI v1"
   echo "[INFO] Please upgrade to v2 for longer support"
   echo "[INFO] https://1password.com/downloads/command-line/"
   #Set for op_CLIv1
@@ -107,9 +105,7 @@ elif [[ $OP_VERSION != 2* ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
-echo
-echo "Checking 'jq' installed"
-JQ_VERSION=$(jq --version)
+jq --version > /dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   echo "Utility 'jq' was not found, please make sure it is installed"
   echo "and available in the system path."
@@ -119,7 +115,6 @@ if [[ $? -ne 0 ]]; then
   cleanup_kong_license_vars
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
-echo "'jq' version $JQ_VERSION found"
 
 
 # check if we're sourced or run
@@ -258,13 +253,6 @@ if [[ $OP_VERSION == 1* ]]; then
 elif [[ $OP_VERSION == 2* ]]; then
   KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="password").value' | sed s/\"//g)
   KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="username").value' | sed s/\"//g)
-else
-  #How did we get here?
-  echo "The 1Password CLI utility 'op' version found is not supported by this script"
-  echo "Use --help for info."
-  echo
-  cleanup_kong_license_vars
-  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
 echo "Downloading license..."
