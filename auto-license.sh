@@ -46,7 +46,7 @@ $KONG_LICENSE_DATA" 1>&2
     exit 1
   fi
  
-  if jq --version > /dev/null ; then
+  if jq --version &> /dev/null ; then
     # jq is installed so do some pretty printing of license info (to STDERR)
     local PRODUCT=$(jq -r '.license.payload.product_subscription' <<< "$KONG_LICENSE_DATA")
     local COMPANY=$(jq -r '.license.payload.customer' <<< "$KONG_LICENSE_DATA")
