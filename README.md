@@ -2,11 +2,11 @@
 
 # Kong Inc internal test license script
 
-There are 2 scripts;
+There are 3 scripts/actions;
 
 1. [user script](#user-script)
 2. [automation script](#automation-script)
-
+3. [github action](#github-action)
 
 # User script
 
@@ -101,6 +101,48 @@ export KONG_LICENSE_DATA=$(./kong-license/auto-license.sh)
 # assumes the Pulp password is stored in THE_PASSWORD
 git clone --depth=1 --single-branch https://github.com/Kong/kong-license.git
 export KONG_LICENSE_DATA=$(./kong-license/auto-license.sh <<< "$THE_PASSWORD")
+```
+
+---
+
+# Github action
+
+The Github action in this repo will fetch a license provided the Pulp credentials
+are available. To do this it uses the [Automation script](#automation-script) under
+the hood. The action output will be the Kong License. The license will also be
+exported as the `KONG_LICENSE_DATA` environment variable for follow up steps.
+The license signature will be masked in the log output.
+
+Here's how to use the action:
+```yaml
+    steps:
+    - uses: Kong/kong-license@master
+      id: getLicense
+      with:
+        # The password is required
+        password: ${{ secrets.PULP_PASSWORD }}
+        # The username defaults to "admin"
+        #username: ${{ secrets.PULP_USERNAME }}
+```
+
+In any follow up step, requiring the Kong license, it can be added like this:
+```yaml
+    steps:
+    - run: kong start
+      shell: bash
+      env:
+        #KONG_LICENSE_DATA has been set by the license-action
+        MY_LICENSE: ${{ steps.getLicense.outputs.license }}
+```
+
+The shortest version relying on defaults and environment variables being set:
+```yaml
+    steps:
+    - uses: Kong/kong-license@master
+      with:
+        password: ${{ secrets.PULP_PASSWORD }}
+    - run: kong start
+      shell: bash
 ```
 
 ---
