@@ -20,15 +20,15 @@ runs:
   steps:
     - id: auto-license
       run: |
+        PULP_USERNAME="${{ inputs.username }}"
         KONG_LICENSE_DATA=$(${{ github.action_path }}/auto-license.sh <<< "${{ inputs.password }}")
         if [ $? -ne 0 ]; then
           exit 1
         fi
         echo ::add-mask::$(jq -r '.license.signature' <<< "$KONG_LICENSE_DATA")
+        echo ::add-mask::$(jq -r '.license.payload.license_key' <<< "$KONG_LICENSE_DATA")
         echo "::set-output name=license::$KONG_LICENSE_DATA"
         echo 'KONG_LICENSE_DATA<<EOF' >> $GITHUB_ENV
         echo $KONG_LICENSE_DATA >> $GITHUB_ENV
         echo 'EOF' >> $GITHUB_ENV
       shell: bash
-      env:
-        PULP_USERNAME: ${{ inputs.username }}
