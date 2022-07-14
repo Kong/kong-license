@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
 
+# Account for different word splitting in zsh which doesn't split the words in
+# variables causing errors like e.g.:
+# unknown flag: --account team_kong --raw
+#
+# rel: https://zsh.sourceforge.io/Doc/Release/Options.html
+function unset_zsh_opts(){
+  if [[ "${SHELL}" =~ .*zsh$ && -n ${ZSH_NAME} ]]; then
+    unsetopt SH_WORD_SPLIT
+  fi
+}
+if [[ "${SHELL}" =~ .*zsh$ && -n ${ZSH_NAME} ]]; then
+  setopt SH_WORD_SPLIT
+  trap unset_zsh_opts EXIT INT TERM
+fi
 
 # location where to store our files
 LOCATION=~/.kong-license-data
@@ -18,7 +32,7 @@ FILENAME="$LOCATION/$FILE"
 KONG_PULP_URL="https://download.konghq.com/internal/kong-gateway/license.json"
 
 
-function cleanup_kong_license_vars {
+function cleanup {
   unset LOCATION FILE OP_ACCOUNT FILENAME
   unset PRODUCT COMPANY EXPIRE
   unset EXPIRE_EPOCH NOW_EPOCH WARN_EPOCH EXPIRE_IN
@@ -26,6 +40,7 @@ function cleanup_kong_license_vars {
   unset KONG_PULP_PWD KONG_PULP_USER KONG_PULP_URL
   unset NEW_KEY OLD_SIG NEW_SIG
   unset OP_SIGNIN_PARAMS OP_GET_CMD OP_SIGNOUT_PARAMS
+  unset_zsh_opts
 }
 
 
@@ -48,7 +63,7 @@ if [[ "$1" == "--help" ]]; then
   echo "For convenience you can add the following to your bash profile:"
   echo "    source ${BASH_SOURCE[0]} --no-update"
   echo
-  cleanup_kong_license_vars
+  cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
@@ -57,7 +72,7 @@ if [[ "$1" == "--clean" ]]; then
   rm "$FILENAME"  > /dev/null 2>&1
   rmdir "$LOCATION"  > /dev/null 2>&1
   echo "Removed cached files"
-  cleanup_kong_license_vars
+  cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
@@ -72,7 +87,7 @@ if [[ $? -ne 0 ]]; then
   echo
   echo "Use --help for info."
   echo
-  cleanup_kong_license_vars
+  cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
@@ -101,7 +116,7 @@ elif [[ $OP_VERSION != 2* ]]; then
   echo
   echo "Use --help for info."
   echo
-  cleanup_kong_license_vars
+  cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
@@ -112,7 +127,7 @@ if [[ $? -ne 0 ]]; then
   echo
   echo "See: https://stedolan.github.io/jq/"
   echo
-  cleanup_kong_license_vars
+  cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
@@ -193,7 +208,7 @@ if (( NOW_EPOCH < EXPIRE_EPOCH )); then
   # check if we're forcing an update, despite being valid
   if [[ ! "$1" == "--update" ]]; then
     # all is well, we're done
-    cleanup_kong_license_vars
+    cleanup
     [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
   fi
 
@@ -206,7 +221,7 @@ else
     echo
     echo "run the following command to initiate an update:"
     echo "    source ${BASH_SOURCE[0]}"
-    cleanup_kong_license_vars
+    cleanup
     [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
   fi
 fi
@@ -221,10 +236,9 @@ OP_TOKEN=$(
 if [[ ! $? == 0 ]]; then
   # an error while logging into 1Password
   echo "[ERROR] Failed to get a 1Password token, license data not updated."
-  cleanup_kong_license_vars
+  cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
-
 
 # Get the Pulp credentials
 echo "Get credentials from 1Password..."
@@ -237,7 +251,7 @@ if [[ ! $? == 0 ]]; then
   echo "[ERROR] Failed to get the data from 1Password, license data not updated."
   # sign out again
   op signout
-  cleanup_kong_license_vars
+  cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
@@ -260,7 +274,7 @@ NEW_KEY=$(curl -s -L -u"$KONG_PULP_USER:$KONG_PULP_PWD" "$KONG_PULP_URL")
 if [[ ! $NEW_KEY == *"signature"* || ! $NEW_KEY == *"payload"* ]]; then
   echo "[ERROR] failed to download the Kong Enterprise license file
     $NEW_KEY"
-  cleanup_kong_license_vars
+  cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
@@ -271,7 +285,7 @@ NEW_SIG=$(jq -r '.license.signature' <<<"$NEW_KEY")
 
 if [[ "$OLD_SIG" == "$NEW_SIG" ]]; then
   echo "[ERROR] The new license is the same as the old one, seems the Pulp license was not updated yet."
-  cleanup_kong_license_vars
+  cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
@@ -284,4 +298,4 @@ PRODUCT=$(jq -r '.license.payload.product_subscription' <<< "$KONG_LICENSE_DATA"
 COMPANY=$(jq -r '.license.payload.customer' <<< "$KONG_LICENSE_DATA")
 EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<< "$KONG_LICENSE_DATA")
 echo "$PRODUCT licensed to $COMPANY, license expires: $EXPIRE"
-cleanup_kong_license_vars
+cleanup
