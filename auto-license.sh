@@ -39,22 +39,35 @@ function main {
   fi
 
 
-  KONG_LICENSE_DATA=$(curl -s -L --retry 3 --retry-delay 3 -u"$KONG_PULP_USERNAME:$KONG_PULP_PASSWORD" "$KONG_PULP_URL")
-  if [[ ! $KONG_LICENSE_DATA == *"signature"* || ! $KONG_LICENSE_DATA == *"payload"* ]]; then
+  KONG_LICENSE_DATA=$(curl -s -L -u"$KONG_PULP_USERNAME:$KONG_PULP_PASSWORD" "$KONG_PULP_URL")
+  if [[ ! ${KONG_LICENSE_DATA} == *"signature"* || ! ${KONG_LICENSE_DATA} == *"payload"* ]]; then
     echo "[ERROR] failed to download the Kong Enterprise license file
-$KONG_LICENSE_DATA" 1>&2
-    exit 1
+${KONG_LICENSE_DATA}" 1>&2
+    return 1
   fi
- 
+
+  if ! jq <<< "${KONG_LICENSE_DATA}" &> /dev/null ; then
+    echo "[ERROR] downloaded Kong Enterprise license is not a valid JSON:
+${KONG_LICENSE_DATA}" 1>&2
+    return 1
+  fi
+
   if jq --version &> /dev/null ; then
     # jq is installed so do some pretty printing of license info (to STDERR)
-    local PRODUCT=$(jq -r '.license.payload.product_subscription' <<< "$KONG_LICENSE_DATA")
-    local COMPANY=$(jq -r '.license.payload.customer' <<< "$KONG_LICENSE_DATA")
-    local EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<< "$KONG_LICENSE_DATA")
+    local PRODUCT=$(jq -r '.license.payload.product_subscription' <<< "${KONG_LICENSE_DATA}")
+    local COMPANY=$(jq -r '.license.payload.customer' <<< "${KONG_LICENSE_DATA}")
+    local EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<< "${KONG_LICENSE_DATA}")
     echo "$PRODUCT licensed to $COMPANY, license expires: $EXPIRE" 1>&2
   fi
 
-  echo "$KONG_LICENSE_DATA"
+  echo "${KONG_LICENSE_DATA}"
 }
 
-main
+# Add some basic retry mechanism to work around network flakiness and/or API misbehavior.
+for _ in {1..3}
+do
+  if main; then
+    exit 0
+  fi
+  sleep 3
+done
