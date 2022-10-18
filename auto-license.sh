@@ -39,7 +39,13 @@ function main {
   fi
 
 
-  KONG_LICENSE_DATA=$(curl -s -L -u"$KONG_PULP_USERNAME:$KONG_PULP_PASSWORD" "$KONG_PULP_URL")
+  KONG_LICENSE_DATA=$(curl --fail -s -L -u"$KONG_PULP_USERNAME:$KONG_PULP_PASSWORD" "$KONG_PULP_URL")
+  CURL_RETURN_CODE=$?
+  if [[ ${CURL_RETURN_CODE} -ne 0 ]]; then
+    echo "[ERROR] failed to download the Kong Enterprise license file, curl failed with error code ${CURL_RETURN_CODE}" 1>&2
+    return 1
+  fi
+
   if [[ ! ${KONG_LICENSE_DATA} == *"signature"* || ! ${KONG_LICENSE_DATA} == *"payload"* ]]; then
     echo "[ERROR] failed to download the Kong Enterprise license file
 ${KONG_LICENSE_DATA}" 1>&2
