@@ -40,6 +40,7 @@ function cleanup {
   unset KONG_PULP_PWD KONG_PULP_USER KONG_PULP_URL
   unset NEW_KEY OLD_SIG NEW_SIG
   unset OP_SIGNIN_PARAMS OP_GET_CMD OP_SIGNOUT_PARAMS
+  unset OP_BIOMETRIC_UNLOCK_ENABLED
   unset_zsh_opts
 }
 
@@ -76,6 +77,9 @@ if [[ "$1" == "--clean" ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
+# Disable use of biometric auth if enabled (causes issues with account names and shorthands)
+# https://developer.1password.com/docs/cli/about-biometric-unlock
+export OP_BIOMETRIC_UNLOCK_ENABLED=false
 
 #Check 1Password CLI version
 OP_VERSION=$(op --version)
