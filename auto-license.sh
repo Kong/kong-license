@@ -77,3 +77,6 @@ do
   fi
   sleep 3
 done
+
+# we failed
+exit 1
