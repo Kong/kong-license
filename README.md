@@ -151,6 +151,13 @@ The shortest version relying on defaults and environment variables being set:
 
 # Uploading a license
 
+There should be no need to update it, as an automated job runs to do this on every 10th day of the month.
+The job generates a license valid until the 20th of the next month.
+
+The job is an internal Jenkins job named; `kong-gateway-license-update`. In case of failures, first remedy is to restart the job.
+
+### manual update
+
 To update the license in Pulp, the [release_scripts](https://github.com/Kong/release-scripts) Docker image
 can be used
 
