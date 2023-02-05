@@ -8,6 +8,7 @@
 function unset_zsh_opts(){
   if [[ "${SHELL}" =~ .*zsh$ && -n ${ZSH_NAME} ]]; then
     unsetopt SH_WORD_SPLIT
+    trap - EXIT INT TERM
   fi
 }
 if [[ "${SHELL}" =~ .*zsh$ && -n ${ZSH_NAME} ]]; then
