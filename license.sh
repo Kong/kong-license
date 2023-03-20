@@ -104,16 +104,15 @@ OP_SIGNOUT_PARAMS=""
 
 # Crude version check and set parameters to match
 if [[ $OP_VERSION == 1* ]]; then
-  echo "[INFO] Found 1Password CLI v1"
-  echo "[INFO] Please upgrade to v2 for longer support"
-  echo "[INFO] https://1password.com/downloads/command-line/"
-  #Set for op_CLIv1
-  OP_SIGNIN_PARAMS="$OP_ACCOUNT --output=raw"
-  OP_GET_CMD="get item"
-  OP_SIGNOUT_PARAMS="--session=$OP_TOKEN"
+  echo "Found 1Password CLI v1"
+  echo "Please upgrade to v2"
+  echo "https://1password.com/downloads/command-line/"
+  echo
+  cleanup
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 elif [[ $OP_VERSION != 2* ]]; then
   echo "The 1Password CLI utility 'op' version found is not supported by this script"
-  echo "Currently supporting v1 (legacy) and v2 (latest as of 2022-05)"
+  echo "Currently supporting only v2 (latest as of 2023-03)"
   echo "Please download v2 and do the initial signin"
   echo
   echo "See: https://1password.com/downloads/command-line/"
@@ -264,15 +263,6 @@ fi
 echo "Sign out of 1Password..."
 # shellcheck disable=SC2086 
 op signout $OP_SIGNOUT_PARAMS
-
-#Extract UID and PWD from 1Password response depending on version
-if [[ $OP_VERSION == 1* ]]; then
-  KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
-  KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
-elif [[ $OP_VERSION == 2* ]]; then
-  KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="password").value' | sed s/\"//g)
-  KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="username").value' | sed s/\"//g)
-fi
 
 echo "Downloading license..."
 NEW_KEY=$(curl -s -L -u"$KONG_PULP_USER:$KONG_PULP_PWD" "$KONG_PULP_URL")
