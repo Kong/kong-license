@@ -79,9 +79,8 @@ fi
 # https://developer.1password.com/docs/cli/about-biometric-unlock
 export OP_BIOMETRIC_UNLOCK_ENABLED=false
 
-#Check 1Password CLI version
-OP_VERSION=$(op --version)
-if [[ $? -ne 0 ]]; then
+# Check 1Password CLI available
+if ! op --version >/dev/null 2>&1; then
   echo "The 1Password CLI utility 'op' was not found"
   echo "Please download and do the initial signin"
   echo
@@ -99,7 +98,8 @@ OP_SIGNIN_PARAMS="--account $OP_ACCOUNT --raw"
 OP_GET_CMD="item get"
 OP_SIGNOUT_PARAMS=""
 
-# Crude version check and set parameters to match
+# Check 1Password CLI version
+OP_VERSION="$(op --version)"
 if [[ $OP_VERSION == 1* ]]; then
   echo "Found 1Password CLI v1"
   echo "Please upgrade to v2"
@@ -157,7 +157,8 @@ EOL
 fi
 
 # set the license data
-export KONG_LICENSE_DATA=$(<"$FILENAME")
+KONG_LICENSE_DATA=$(<"$FILENAME")
+export KONG_LICENSE_DATA
 PRODUCT=$(jq -r '.license.payload.product_subscription' <<<"$KONG_LICENSE_DATA")
 COMPANY=$(jq -r '.license.payload.customer' <<<"$KONG_LICENSE_DATA")
 EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<<"$KONG_LICENSE_DATA")
@@ -278,7 +279,8 @@ echo "$NEW_KEY" >"$FILENAME"
 echo license updated!
 
 # set the license data
-export KONG_LICENSE_DATA=$(<"$FILENAME")
+KONG_LICENSE_DATA=$(<"$FILENAME")
+export KONG_LICENSE_DATA
 PRODUCT=$(jq -r '.license.payload.product_subscription' <<<"$KONG_LICENSE_DATA")
 COMPANY=$(jq -r '.license.payload.customer' <<<"$KONG_LICENSE_DATA")
 EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<<"$KONG_LICENSE_DATA")
