@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+if [[ -n "${DEBUG:-}" ]]; then
+  set -x
+fi
+
 # Account for different word splitting in zsh which doesn't split the words in
 # variables causing errors like e.g.:
 # unknown flag: --account team_kong --raw
@@ -23,24 +27,18 @@ LOCATION=~/.kong-license-data
 FILE=license.json
 
 # OnePassword account name
-OP_ACCOUNT=team_kong
-
-# License entry uuid, use `op list items | jq` to find the right uuid.
-OP_UUID=c5jg2oc6wzg6ffs2awxeohrnmm
+export OP_ACCOUNT='team-kong.1password.com'
 
 # Nothing to customize below
 FILENAME="$LOCATION/$FILE"
-KONG_PULP_URL="https://download.konghq.com/internal/kong-gateway/license.json"
+export PULP_URL="https://download.konghq.com/internal/kong-gateway/license.json"
 
 function cleanup {
   unset LOCATION FILE OP_ACCOUNT FILENAME
   unset PRODUCT COMPANY EXPIRE
   unset EXPIRE_EPOCH NOW_EPOCH WARN_EPOCH EXPIRE_IN
-  unset OP_TOKEN OP_UUID DETAILS
-  unset KONG_PULP_PWD KONG_PULP_USER KONG_PULP_URL
+  unset PULP_URL
   unset NEW_KEY OLD_SIG NEW_SIG
-  unset OP_SIGNIN_PARAMS OP_GET_CMD OP_SIGNOUT_PARAMS
-  unset OP_BIOMETRIC_UNLOCK_ENABLED
   unset_zsh_opts
 }
 
@@ -75,10 +73,6 @@ if [[ "$1" == "--clean" ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
-# Disable use of biometric auth if enabled (causes issues with account names and shorthands)
-# https://developer.1password.com/docs/cli/about-biometric-unlock
-export OP_BIOMETRIC_UNLOCK_ENABLED=false
-
 # Check 1Password CLI available
 if ! op --version >/dev/null 2>&1; then
   echo "The 1Password CLI utility 'op' was not found"
@@ -91,12 +85,6 @@ if ! op --version >/dev/null 2>&1; then
   cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
-
-#Now estabilished op CLI exists, need to set params for each version
-#Set for op_CLIv2
-OP_SIGNIN_PARAMS="--account $OP_ACCOUNT --raw"
-OP_GET_CMD="item get"
-OP_SIGNOUT_PARAMS=""
 
 # Check 1Password CLI version
 OP_VERSION="$(op --version)"
@@ -223,41 +211,17 @@ else
 fi
 
 echo
-# sign in to 1Password
-echo "Logging into 1Password..."
-OP_TOKEN=$(
-  # shellcheck disable=SC2086
-  op signin $OP_SIGNIN_PARAMS
-)
-if [[ ! $? == 0 ]]; then
-  # an error while logging into 1Password
-  echo "[ERROR] Failed to get a 1Password token, license data not updated."
-  cleanup
-  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
-fi
-
-# Get the Pulp credentials
-echo "Get credentials from 1Password..."
-DETAILS=$(
-  # shellcheck disable=SC2086 
-  op $OP_GET_CMD $OP_UUID --session $OP_TOKEN --format json
-)
-if [[ ! $? == 0 ]]; then
-  # an error while fetching the Pulp keys
-  echo "[ERROR] Failed to get the data from 1Password, license data not updated."
-  # sign out again
-  op signout
-  cleanup
-  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
-fi
-
-# sign out again
-echo "Sign out of 1Password..."
-# shellcheck disable=SC2086
-op signout $OP_SIGNOUT_PARAMS
-
 echo "Downloading license..."
-NEW_KEY=$(curl -s -L -u"$KONG_PULP_USER:$KONG_PULP_PWD" "$KONG_PULP_URL")
+# shellcheck disable=SC2154
+NEW_KEY="$(
+  op run --env-file=<(
+    echo 'USERNAME=op://Shared/License Credentials/username'
+    echo 'PASSWORD=op://Shared/License Credentials/password'
+  ) -- bash -xc "
+    curl -s -L -u\"\${USERNAME}:\${PASSWORD}\" \"\${PULP_URL}\"
+  "
+)"
+
 if [[ ! $NEW_KEY == *"signature"* || ! $NEW_KEY == *"payload"* ]]; then
   echo "[ERROR] failed to download the Kong Enterprise license file
     $NEW_KEY"
