@@ -25,8 +25,8 @@ FILE=license.json
 # OnePassword account name
 OP_ACCOUNT=team_kong
 
-# License entry uuid, use `op list items | jq` to find the right uuid.
-OP_UUID=c5jg2oc6wzg6ffs2awxeohrnmm
+# License entry uuid, use `op item list | grep "License Credentials"` to find the right uuid.
+OP_UUID=qmcno52ta6oa2wkyeg3ta5466u
 
 # Nothing to customize below
 FILENAME="$LOCATION/$FILE"
