@@ -212,15 +212,22 @@ fi
 
 echo
 echo "Downloading license..."
+
+TMP_FILENAME="$(mktemp)"
+
 # shellcheck disable=SC2154
-NEW_KEY="$(
-  op run --env-file=<(
-    echo 'USERNAME=op://Shared/License Credentials/username'
-    echo 'PASSWORD=op://Shared/License Credentials/password'
-  ) -- bash -xc "
-    curl -s -L -u\"\${USERNAME}:\${PASSWORD}\" \"\${PULP_URL}\"
-  "
-)"
+
+op run --env-file=<(
+  echo 'USERNAME=op://Shared/License Credentials/username'
+  echo 'PASSWORD=op://Shared/License Credentials/password'
+) -- bash -xc "
+  curl -sL \
+    -u \"\${USERNAME}:\${PASSWORD}\" \
+    \"\${PULP_URL}\" \
+    -o \"${TMP_FILENAME}\"
+"
+
+NEW_KEY="$(cat "$TMP_FILENAME")"
 
 if [[ ! $NEW_KEY == *"signature"* || ! $NEW_KEY == *"payload"* ]]; then
   echo "[ERROR] failed to download the Kong Enterprise license file
