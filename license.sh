@@ -17,27 +17,27 @@ if [[ "${SHELL}" =~ .*zsh$ && -n ${ZSH_NAME} ]]; then
 fi
 
 # location where to store our files
-LOCATION=~/.kong-license-data
+LOCATION="${HOME}/.kong-license-data"
 
 # License file name
-FILE=license.json
+FILE='license.json'
 
 # OnePassword account name
 OP_ACCOUNT=team_kong
 
-# License entry uuid, use `op item list | grep "License Credentials"` to find the right uuid.
-OP_UUID=qmcno52ta6oa2wkyeg3ta5466u
+# License entry uuid, use:
+#   op item get --vault 'Github Actions' 'Monthly Kong Gateway Enterprise License' | grep 'ID:'
+# to find the right uuid
+OP_UUID='ddwtjd6cmytlksanwl6xtkw23a'
 
 # Nothing to customize below
 FILENAME="$LOCATION/$FILE"
-KONG_PULP_URL="https://download.konghq.com/internal/kong-gateway/license.json"
 
 function cleanup {
   unset LOCATION FILE OP_ACCOUNT FILENAME
   unset PRODUCT COMPANY EXPIRE
   unset EXPIRE_EPOCH NOW_EPOCH WARN_EPOCH EXPIRE_IN
   unset OP_TOKEN OP_UUID DETAILS
-  unset KONG_PULP_PWD KONG_PULP_USER KONG_PULP_URL
   unset NEW_KEY OLD_SIG NEW_SIG
   unset OP_SIGNIN_PARAMS OP_GET_CMD OP_SIGNOUT_PARAMS
   unset OP_BIOMETRIC_UNLOCK_ENABLED
@@ -79,7 +79,7 @@ fi
 # https://developer.1password.com/docs/cli/about-biometric-unlock
 export OP_BIOMETRIC_UNLOCK_ENABLED=false
 
-#Check 1Password CLI version
+# Check 1Password CLI version
 OP_VERSION=$(op --version)
 if [[ $? -ne 0 ]]; then
   echo "The 1Password CLI utility 'op' was not found"
@@ -93,8 +93,8 @@ if [[ $? -ne 0 ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
-#Now estabilished op CLI exists, need to set params for each version
-#Set for op_CLIv2
+# Now established op CLI exists, need to set params for each version
+# Set for op_CLIv2
 OP_SIGNIN_PARAMS="--account $OP_ACCOUNT --raw"
 OP_GET_CMD="item get"
 OP_SIGNOUT_PARAMS=""
@@ -104,7 +104,7 @@ if [[ $OP_VERSION == 1* ]]; then
   echo "[INFO] Found 1Password CLI v1"
   echo "[INFO] Please upgrade to v2 for longer support"
   echo "[INFO] https://1password.com/downloads/command-line/"
-  #Set for op_CLIv1
+  # Set for op_CLIv1
   OP_SIGNIN_PARAMS="$OP_ACCOUNT --output=raw"
   OP_GET_CMD="get item"
   OP_SIGNOUT_PARAMS="--session=$OP_TOKEN"
@@ -236,14 +236,14 @@ if [[ ! $? == 0 ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
-# Get the Pulp credentials
-echo "Get credentials from 1Password..."
+# Get the gateway license
+echo "Get license file from 1Password..."
 DETAILS=$(
   # shellcheck disable=SC2086
   op $OP_GET_CMD $OP_UUID --session $OP_TOKEN --format json
 )
 if [[ ! $? == 0 ]]; then
-  # an error while fetching the Pulp keys
+  # an error while fetching from 1p
   echo "[ERROR] Failed to get the data from 1Password, license data not updated."
   # sign out again
   op signout
@@ -256,17 +256,8 @@ echo "Sign out of 1Password..."
 # shellcheck disable=SC2086
 op signout $OP_SIGNOUT_PARAMS
 
-#Extract UID and PWD from 1Password response depending on version
-if [[ $OP_VERSION == 1* ]]; then
-  KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
-  KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
-elif [[ $OP_VERSION == 2* ]]; then
-  KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="password").value' | sed s/\"//g)
-  KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="username").value' | sed s/\"//g)
-fi
-
 echo "Downloading license..."
-NEW_KEY=$(curl -s -L -u"$KONG_PULP_USER:$KONG_PULP_PWD" "$KONG_PULP_URL")
+NEW_KEY=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="reg_code").value')
 if [[ ! $NEW_KEY == *"signature"* || ! $NEW_KEY == *"payload"* ]]; then
   echo "[ERROR] failed to download the Kong Enterprise license file
     $NEW_KEY"
@@ -279,7 +270,7 @@ OLD_SIG=$(jq -r '.license.signature' <<<"$KONG_LICENSE_DATA")
 NEW_SIG=$(jq -r '.license.signature' <<<"$NEW_KEY")
 
 if [[ "$OLD_SIG" == "$NEW_SIG" ]]; then
-  echo "[ERROR] The new license is the same as the old one, seems the Pulp license was not updated yet."
+  echo "[ERROR] The new license is the same as the old one, seems the 1Password license item has not updated yet."
   cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi

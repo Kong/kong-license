@@ -1,13 +1,18 @@
-name: 'Kong License'
-description: 'Fetches the Kong enterprise license for Kong CI systems'
+name: "Kong License"
+description: "Fetches the Kong enterprise license for Kong CI systems"
 
 inputs:
   username:
-    description: 'Pulp username'
-    required: true
-    default: 'admin'
+    description: "Pulp username"
+    required: false
+    default: "admin"
+    deprecationMessage: "input ignored for compat"
   password:
-    description: 'Pulp password'
+    description: "Pulp password"
+    required: false
+    deprecationMessage: "input ignored for compat"
+  op-token:
+    description: "1Password Service Account token"
     required: true
 
 outputs:
@@ -18,17 +23,20 @@ outputs:
 runs:
   using: "composite"
   steps:
-  - id: auto-license
-    run: |
-      PULP_USERNAME="${{ inputs.username }}"
-      KONG_LICENSE_DATA=$(${{ github.action_path }}/auto-license.sh <<< "${{ inputs.password }}")
-      if [ $? -ne 0 ]; then
-        exit 1
-      fi
-      echo ::add-mask::$(jq -r '.license.signature' <<< "$KONG_LICENSE_DATA")
-      echo ::add-mask::$(jq -r '.license.payload.license_key' <<< "$KONG_LICENSE_DATA")
-      echo "license=$KONG_LICENSE_DATA" >> $GITHUB_OUTPUT
-      echo 'KONG_LICENSE_DATA<<EOF' >> $GITHUB_ENV
-      echo $KONG_LICENSE_DATA >> $GITHUB_ENV
-      echo 'EOF' >> $GITHUB_ENV
-    shell: bash
+    - name: "Install 1Password CLI"
+      uses: 1password/install-cli-action@v1
+    - id: "auto-license"
+      env:
+        OP_SERVICE_ACCOUNT_TOKEN: ${{ inputs.op-token }}
+      run: |
+        KONG_LICENSE_DATA=$(${{ github.action_path }}/auto-license.sh)
+        if [ $? -ne 0 ]; then
+          exit 1
+        fi
+        echo ::add-mask::$(jq -r '.license.signature' <<< "$KONG_LICENSE_DATA")
+        echo ::add-mask::$(jq -r '.license.payload.license_key' <<< "$KONG_LICENSE_DATA")
+        echo "license=$KONG_LICENSE_DATA" >> $GITHUB_OUTPUT
+        echo 'KONG_LICENSE_DATA<<EOF' >> $GITHUB_ENV
+        echo $KONG_LICENSE_DATA >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
+      shell: "bash"

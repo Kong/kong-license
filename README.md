@@ -1,6 +1,4 @@
-[![Build Status](https://travis-ci.com/Kong/kong-license.svg?token=oiCtUsXk8yspLqn3VrwK&branch=master)](https://travis-ci.com/Kong/kong-license)
-
-# Kong Inc internal test license script
+# Kong Inc. internal test license script
 
 There are 3 scripts/actions;
 
@@ -8,13 +6,13 @@ There are 3 scripts/actions;
 2. [automation script](#automation-script)
 3. [github action](#github-action)
 
-# User script
+## User script
 
-This script will pull the internal Kong test license from 1Password/Pulp and
+This script will pull the internal Kong test license from 1Password and
 store it locally.
 
 The intent is to store a single company wide test license, short lived, in
-1Password/Pulp. And make it easy for everyone to update the local license they use,
+1Password. And make it easy for everyone to update the local license they use,
 whilst being able to do rotation of the license on a regular basis.
 
 It will also set the environment variable `KONG_LICENSE_DATA` whenever you open
@@ -22,33 +20,27 @@ up a new terminal, so it is easy to pass to Kong. 10 days before the license
 expires it will start printing warnings, accompanied by the proper update
 command.
 
----
+### 1Password Shared Vault Access
 
-## 1Password Shared Vault Access
-
-Before continuing, make sure you have access to the "Shared" vault in 1Password. You can request access to this vault via the `#it` Kong slack channel. There is an example request [here](https://kongstrong.slack.com/archives/C5B4SU6KC/p1615993209037400) that can be referenced if it's not clear what is being requested from the IT team.
+Before continuing, make sure you have access to the "Github Actions" vault in 1Password. You can request access to this vault via the `#it` Kong slack channel. There is an example request [here](https://kongstrong.slack.com/archives/C5B4SU6KC/p1615993209037400) that can be referenced if it's not clear what is being requested from the IT team.
 
 Note that if you have configured your local 1Password with biometric security (e.g. Apple Face ID), this is not supported by the license script. You will have to add your accounts to the 1Password CLI tool [manually](https://developer.1password.com/docs/cli/sign-in-manually).
 
----
-
-## Installation
+### Installation
 
 1. Install dependencies:
-    - Install `jq`, see https://stedolan.github.io/jq/
-    - Install 1Password CLI tools, see [1Password CLI](https://support.1password.com/command-line-getting-started/)
+   - Install `jq`, see [https://stedolan.github.io/jq/](https://stedolan.github.io/jq/)
+   - Install 1Password CLI tools, see [1Password CLI](https://support.1password.com/command-line-getting-started/)
 2. Make sure you did the initial sign-in, see [1Password instructions](https://support.1password.com/command-line-getting-started/#get-started-with-the-command-line-tool)
 3. Clone this git repo
 4. Run `make install` from the repo
 5. Run `~/.local/bin/license` from the command line, this will initiate the initial update
 6. When asked enter your 1Password credentials
-7. Done! You now have the latest license data from 1Password/Bintray
-
----
+7. Done! You now have the latest license data from 1Password
 
 ## Usage
 
-```
+```code
 Utility to automatically set the Kong Enterprise license
 environment variable 'KONG_LICENSE_DATA' from 1Password.
 
@@ -70,119 +62,94 @@ license expires.
 If you want to use the exported `KONG_LICENSE_DATA` environment variable,
 then you cannot just run the script, but MUST use `source` to execute it.
 
-```
+```bash
 source ~/.local/bin/license
 ```
 
 It is probably best to add the following line to your bash/zsh profile:
 
-```
+```bash
 source ~/.local/bin/license --no-update
 ```
 
----
+### Automation script
 
-# Automation script
-
-The `auto-license.sh` script will download the Kong license file given a Pulp
-password, and pass it to `stdout`. The script will take the Pulp password either
-via `stdin` or from the environment variable `PULP_PASSWORD`.
-The `PULP_USERNAME` environment variable is optional, and will default to
-`admin`.
-
-Note that this just exchanges one secret problem (the license) for another (the
-Pulp password), but in many cases the latter is already available, and in those
-cases this helps prevent having yet another secret.
+The `auto-license.sh` script will download the Kong license file and pass it to
+`stdout`.
 
 Example use:
+
 ```shell
-# assumes PULP_PASSWORD is set
+# assumes 1password is configured/signed in
 git clone --depth=1 --single-branch https://github.com/Kong/kong-license.git
 export KONG_LICENSE_DATA=$(./kong-license/auto-license.sh)
-
-# assumes the Pulp password is stored in THE_PASSWORD
-git clone --depth=1 --single-branch https://github.com/Kong/kong-license.git
-export KONG_LICENSE_DATA=$(./kong-license/auto-license.sh <<< "$THE_PASSWORD")
 ```
 
----
+### Github action
 
-# Github action
-
-The Github action in this repo will fetch a license provided the Pulp credentials
-are available. To do this it uses the [Automation script](#automation-script) under
-the hood. The action output will be the Kong License. The license will also be
-exported as the `KONG_LICENSE_DATA` environment variable for follow up steps.
-The license signature will be masked in the log output.
+The Github action in this repo will fetch a license provided 1Password Service
+Account credentials are available. To do this it uses the
+[Automation script](#automation-script) under the hood. The action output will
+be the Kong License. The license will also be exported as the
+`KONG_LICENSE_DATA` environment variable for follow up steps. The license
+signature will be masked in the log output.
 
 Here's how to use the action:
+
 ```yaml
-    steps:
-    - uses: Kong/kong-license@master
-      id: getLicense
-      with:
-        # The password is required
-        password: ${{ secrets.PULP_PASSWORD }}
-        # The username defaults to "admin"
-        #username: ${{ secrets.PULP_USERNAME }}
+steps:
+  - uses: Kong/kong-license@master
+    id: getLicense
+    with:
+      # 1Password Service Account token required
+      op-token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+      # Pulp password is ignored if provided
+      # password: ${{ secrets.PULP_PASSWORD }}
+      # Pulp username is also ignored if provided
+      # username: ${{ secrets.PULP_USERNAME }}
 ```
 
 In any follow up step, requiring the Kong license, it can be added like this:
+
 ```yaml
-    steps:
-    - run: kong start
-      shell: bash
-      env:
-        #KONG_LICENSE_DATA has been set by the license-action
-        MY_LICENSE: ${{ steps.getLicense.outputs.license }}
+steps:
+  - run: kong start
+    shell: bash
+    env:
+      # KONG_LICENSE_DATA has been set by the license-action
+      MY_LICENSE: ${{ steps.getLicense.outputs.license }}
 ```
 
 The shortest version relying on defaults and environment variables being set:
+
 ```yaml
-    steps:
-    - uses: Kong/kong-license@master
-      with:
-        password: ${{ secrets.PULP_PASSWORD }}
-    - run: kong start
-      shell: bash
+steps:
+  - uses: Kong/kong-license@master
+    with:
+      password: ${{ secrets.PULP_PASSWORD }}
+  - run: kong start
+    shell: bash
 ```
 
----
+### Uploading a license
 
-# Uploading a license
-
-There should be no need to update it, as an automated job runs to do this on every 10th day of the month.
+There should be no need to update it, as an automated job runs to do this on the 2nd day of every the month.
 The job generates a license valid until the 20th of the next month.
 
-The job is an internal Jenkins job named; `kong-gateway-license-update`. In case of failures, first remedy is to restart the job.
+The job is [a github action](https://github.com/Kong/kong-license-updater/actions/workflows/update.yml) in the [Kong/kong-license-updater](https://github.com/Kong/kong-license-updater) repo. In case of failures, first remedy is to re-run the action.
 
-### manual update
+#### Manual update
 
-To update the license in Pulp, the [release_scripts](https://github.com/Kong/release-scripts) Docker image
-can be used
+To update the license in 1Password, use 1Password edit the "Monthly Kong Gateway Enterprise License" item.
 
-```
-docker run -e PULP_USERNAME="<username>" \
-           -e PULP_PASSWORD="<password>" \
-           -e PULP_HOST="https://api.pulp.konnect-prod.konghq.com" \
-           -v ${PWD}/license.json:/license.json:ro \
-           -it kong/release-script \
-           --package-type license \
-           --file /license.json
-```
+### Troubleshooting
 
-**Note**: Credentials for the production Pulp API can be obtained in 1Password shared vault.
-
----
-
-# Troubleshooting
-
-## Seeing error "isn't an item in any vault"
+#### Seeing error "isn't an item in any vault"
 
 If you see an error similar to the following:
 
-```
-[ERROR] 2021/03/16 08:59:05 "c5jg2oc6wzg6ffs2awxeohrnmm" isn't an item in any vault.
+```code
+[ERROR] 2021/03/16 08:59:05 "<op uuid>" isn't an item in any vault.
 ```
 
-This means that you don't have access to the shared vault in 1Password. See [above](#1password-shared-vault-access) for more information on how to get the necessary access.
+This means that you don't have access to the "Github Actions" vault in 1Password. See [above](#1password-shared-vault-access) for more information on how to get the necessary access.
