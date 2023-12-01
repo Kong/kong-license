@@ -5,7 +5,7 @@
 # unknown flag: --account team_kong --raw
 #
 # rel: https://zsh.sourceforge.io/Doc/Release/Options.html
-function unset_zsh_opts(){
+function unset_zsh_opts() {
   if [[ "${SHELL}" =~ .*zsh$ && -n ${ZSH_NAME} ]]; then
     unsetopt SH_WORD_SPLIT
     trap - EXIT INT TERM
@@ -32,7 +32,6 @@ OP_UUID=qmcno52ta6oa2wkyeg3ta5466u
 FILENAME="$LOCATION/$FILE"
 KONG_PULP_URL="https://download.konghq.com/internal/kong-gateway/license.json"
 
-
 function cleanup {
   unset LOCATION FILE OP_ACCOUNT FILENAME
   unset PRODUCT COMPANY EXPIRE
@@ -44,7 +43,6 @@ function cleanup {
   unset OP_BIOMETRIC_UNLOCK_ENABLED
   unset_zsh_opts
 }
-
 
 if [[ "$1" == "--help" ]]; then
   echo "Utility to automatically set the Kong Enterprise license"
@@ -69,10 +67,9 @@ if [[ "$1" == "--help" ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
-
 if [[ "$1" == "--clean" ]]; then
-  rm "$FILENAME"  > /dev/null 2>&1
-  rmdir "$LOCATION"  > /dev/null 2>&1
+  rm "$FILENAME" >/dev/null 2>&1
+  rmdir "$LOCATION" >/dev/null 2>&1
   echo "Removed cached files"
   cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
@@ -125,7 +122,7 @@ elif [[ $OP_VERSION != 2* ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
-jq --version > /dev/null 2>&1
+jq --version >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   echo "Utility 'jq' was not found, please make sure it is installed"
   echo "and available in the system path."
@@ -135,7 +132,6 @@ if [[ $? -ne 0 ]]; then
   cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
-
 
 # check if we're sourced or run
 if [[ "$0" == "${BASH_SOURCE[0]}" ]]; then
@@ -147,12 +143,10 @@ if [[ "$0" == "${BASH_SOURCE[0]}" ]]; then
   echo
 fi
 
-
 # create directory if it doesn't exist
 if [[ ! -d "$LOCATION" ]]; then
   mkdir "$LOCATION"
 fi
-
 
 # create outdated license if it doesn't exist
 if [[ ! -f "$FILENAME" ]]; then
@@ -163,14 +157,12 @@ EOL
   chmod +x "$FILENAME"
 fi
 
-
 # set the license data
 export KONG_LICENSE_DATA=$(<"$FILENAME")
-PRODUCT=$(jq -r '.license.payload.product_subscription' <<< "$KONG_LICENSE_DATA")
-COMPANY=$(jq -r '.license.payload.customer' <<< "$KONG_LICENSE_DATA")
-EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<< "$KONG_LICENSE_DATA")
+PRODUCT=$(jq -r '.license.payload.product_subscription' <<<"$KONG_LICENSE_DATA")
+COMPANY=$(jq -r '.license.payload.customer' <<<"$KONG_LICENSE_DATA")
+EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<<"$KONG_LICENSE_DATA")
 echo "$PRODUCT licensed to $COMPANY, license expires: $EXPIRE"
-
 
 # Parsing date is platform specific
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
@@ -194,10 +186,9 @@ else
   WARN_EPOCH=$(date -v +10d +%s)
 fi
 
-
-if (( NOW_EPOCH < EXPIRE_EPOCH )); then
+if ((NOW_EPOCH < EXPIRE_EPOCH)); then
   # license still valid
-  if (( WARN_EPOCH > EXPIRE_EPOCH )); then
+  if ((WARN_EPOCH > EXPIRE_EPOCH)); then
     # Expiry is within 10 days
     EXPIRE_IN=$((EXPIRE_EPOCH - NOW_EPOCH))
     EXPIRE_IN=$((EXPIRE_IN / 86400))
@@ -235,7 +226,7 @@ echo
 # sign in to 1Password
 echo "Logging into 1Password..."
 OP_TOKEN=$(
-  # shellcheck disable=SC2086 
+  # shellcheck disable=SC2086
   op signin $OP_SIGNIN_PARAMS
 )
 if [[ ! $? == 0 ]]; then
@@ -248,7 +239,7 @@ fi
 # Get the Pulp credentials
 echo "Get credentials from 1Password..."
 DETAILS=$(
-  # shellcheck disable=SC2086 
+  # shellcheck disable=SC2086
   op $OP_GET_CMD $OP_UUID --session $OP_TOKEN --format json
 )
 if [[ ! $? == 0 ]]; then
@@ -262,7 +253,7 @@ fi
 
 # sign out again
 echo "Sign out of 1Password..."
-# shellcheck disable=SC2086 
+# shellcheck disable=SC2086
 op signout $OP_SIGNOUT_PARAMS
 
 #Extract UID and PWD from 1Password response depending on version
@@ -283,7 +274,6 @@ if [[ ! $NEW_KEY == *"signature"* || ! $NEW_KEY == *"payload"* ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
-
 # validate it is different
 OLD_SIG=$(jq -r '.license.signature' <<<"$KONG_LICENSE_DATA")
 NEW_SIG=$(jq -r '.license.signature' <<<"$NEW_KEY")
@@ -294,13 +284,13 @@ if [[ "$OLD_SIG" == "$NEW_SIG" ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
-echo "$NEW_KEY" > "$FILENAME"
+echo "$NEW_KEY" >"$FILENAME"
 echo license updated!
 
 # set the license data
 export KONG_LICENSE_DATA=$(<"$FILENAME")
-PRODUCT=$(jq -r '.license.payload.product_subscription' <<< "$KONG_LICENSE_DATA")
-COMPANY=$(jq -r '.license.payload.customer' <<< "$KONG_LICENSE_DATA")
-EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<< "$KONG_LICENSE_DATA")
+PRODUCT=$(jq -r '.license.payload.product_subscription' <<<"$KONG_LICENSE_DATA")
+COMPANY=$(jq -r '.license.payload.customer' <<<"$KONG_LICENSE_DATA")
+EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<<"$KONG_LICENSE_DATA")
 echo "$PRODUCT licensed to $COMPANY, license expires: $EXPIRE"
 cleanup
