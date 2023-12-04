@@ -12,7 +12,7 @@
 OP_UUID='ddwtjd6cmytlksanwl6xtkw23a'
 
 # OnePassword account name
-OP_ACCOUNT=team_kong
+OP_ACCOUNT='team-kong.1password.com'
 
 OP_SIGNIN_PARAMS="--account $OP_ACCOUNT --raw"
 OP_GET_CMD="item get"

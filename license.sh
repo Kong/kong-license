@@ -23,7 +23,7 @@ LOCATION="${HOME}/.kong-license-data"
 FILE='license.json'
 
 # OnePassword account name
-OP_ACCOUNT=team_kong
+OP_ACCOUNT='team-kong.1password.com'
 
 # License entry uuid, use:
 #   op item get --vault 'Github Actions' 'Monthly Kong Gateway Enterprise License' | grep 'ID:'
