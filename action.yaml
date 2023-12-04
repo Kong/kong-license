@@ -18,24 +18,26 @@ inputs:
 outputs:
   license:
     description: "Kong license"
-    value: ${{ steps.auto-license.outputs.license }}
+    value: ${{ steps.onep.outputs.KONG_LICENSE_DATA }}
 
 runs:
   using: "composite"
   steps:
-    - name: "Install 1Password CLI"
-      uses: 1password/install-cli-action@v1
-    - id: "auto-license"
+    - name: Load license
+      id: onep
+      uses: 1password/load-secrets-action@v1
+      with:
+        export-env: false
       env:
         OP_SERVICE_ACCOUNT_TOKEN: ${{ inputs.op-token }}
+        KONG_LICENSE_DATA: "op://Github Actions/Monthly Kong Gateway Enterprise License/license key"
+
+    - name: Mask
+      env:
+        KONG_LICENSE_DATA: ${{ steps.onep.outputs.KONG_LICENSE_DATA }}
       run: |
-        KONG_LICENSE_DATA=$(${{ github.action_path }}/auto-license.sh)
-        if [ $? -ne 0 ]; then
-          exit 1
-        fi
         echo ::add-mask::$(jq -r '.license.signature' <<< "$KONG_LICENSE_DATA")
         echo ::add-mask::$(jq -r '.license.payload.license_key' <<< "$KONG_LICENSE_DATA")
-        echo "license=$KONG_LICENSE_DATA" >> $GITHUB_OUTPUT
         echo 'KONG_LICENSE_DATA<<EOF' >> $GITHUB_ENV
         echo $KONG_LICENSE_DATA >> $GITHUB_ENV
         echo 'EOF' >> $GITHUB_ENV
