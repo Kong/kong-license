@@ -101,13 +101,12 @@ OP_SIGNOUT_PARAMS=""
 
 # Crude version check and set parameters to match
 if [[ $OP_VERSION == 1* ]]; then
-  echo "[INFO] Found 1Password CLI v1"
-  echo "[INFO] Please upgrade to v2 for longer support"
-  echo "[INFO] https://1password.com/downloads/command-line/"
-  # Set for op_CLIv1
-  OP_SIGNIN_PARAMS="$OP_ACCOUNT --output=raw"
-  OP_GET_CMD="get item"
-  OP_SIGNOUT_PARAMS="--session=$OP_TOKEN"
+  echo "[ERROR] Found 1Password CLI v1"
+  echo "[ERROR] Please upgrade to v2"
+  echo "[ERROR] https://1password.com/downloads/command-line/"
+  echo
+  cleanup
+  exit 1
 elif [[ $OP_VERSION != 2* ]]; then
   echo "The 1Password CLI utility 'op' version found is not supported by this script"
   echo "Currently supporting v1 (legacy) and v2 (latest as of 2022-05)"
