@@ -37,10 +37,9 @@ function cleanup {
   unset LOCATION FILE OP_ACCOUNT FILENAME
   unset PRODUCT COMPANY EXPIRE
   unset EXPIRE_EPOCH NOW_EPOCH WARN_EPOCH EXPIRE_IN
-  unset OP_TOKEN OP_UUID DETAILS
+  unset OP_UUID DETAILS
   unset NEW_KEY OLD_SIG NEW_SIG
   unset OP_SIGNIN_PARAMS OP_GET_CMD OP_SIGNOUT_PARAMS
-  unset OP_BIOMETRIC_UNLOCK_ENABLED
   unset_zsh_opts
 }
 
@@ -74,10 +73,6 @@ if [[ "$1" == "--clean" ]]; then
   cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
-
-# Disable use of biometric auth if enabled (causes issues with account names and shorthands)
-# https://developer.1password.com/docs/cli/about-biometric-unlock
-export OP_BIOMETRIC_UNLOCK_ENABLED=false
 
 # Check 1Password CLI version
 OP_VERSION=$(op --version)
@@ -221,27 +216,47 @@ else
   fi
 fi
 
-echo
-# sign in to 1Password
-echo "Logging into 1Password..."
-OP_TOKEN=$(
-  # shellcheck disable=SC2086
-  op signin $OP_SIGNIN_PARAMS
-)
-if [[ ! $? == 0 ]]; then
-  # an error while logging into 1Password
-  echo "[ERROR] Failed to get a 1Password token, license data not updated."
-  cleanup
-  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
-fi
-
-# Get the gateway license
-echo "Get license file from 1Password..."
 DETAILS=$(
   # shellcheck disable=SC2086
-  op $OP_GET_CMD $OP_UUID --session $OP_TOKEN --format json
+  op $OP_GET_CMD \
+    $OP_UUID \
+    --fields label=reg_code \
+    --format json |
+    jq -r '.value' ||
+    true
 )
-if [[ ! $? == 0 ]]; then
+
+if [ -n "$DETAILS" ]; then
+  echo
+  echo "[INFO] got 1Password item!"
+else
+  echo
+  # sign in to 1Password
+  echo "Logging into 1Password..."
+
+  # shellcheck disable=SC2086
+  op signin $OP_SIGNIN_PARAMS
+
+  if [[ ! $? == 0 ]]; then
+    # an error while logging into 1Password
+    echo "[ERROR] Failed to get a 1Password token, license data not updated."
+    cleanup
+    [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
+  fi
+
+  # Get the gateway license
+  echo "Get license file from 1Password..."
+  DETAILS=$(
+    # shellcheck disable=SC2086
+    op $OP_GET_CMD \
+      $OP_UUID \
+      --fields label=reg_code \
+      --format json |
+      jq -r '.value'
+  )
+fi
+
+if [ -z "$DETAILS" ]; then
   # an error while fetching from 1p
   echo "[ERROR] Failed to get the data from 1Password, license data not updated."
   # sign out again
@@ -256,7 +271,7 @@ echo "Sign out of 1Password..."
 op signout $OP_SIGNOUT_PARAMS
 
 echo "Downloading license..."
-NEW_KEY=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="reg_code").value')
+NEW_KEY=$(printf "%s" "$DETAILS")
 if [[ ! $NEW_KEY == *"signature"* || ! $NEW_KEY == *"payload"* ]]; then
   echo "[ERROR] failed to download the Kong Enterprise license file
     $NEW_KEY"

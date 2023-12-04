@@ -22,10 +22,10 @@ function main {
 
   # sign in to 1Password
   echo "Logging into 1Password..."
-  OP_TOKEN=$(
-    # shellcheck disable=SC2086
-    op signin ${OP_SIGNIN_PARAMS}
-  )
+
+  # shellcheck disable=SC2086
+  op signin ${OP_SIGNIN_PARAMS}
+
   if [[ ! $? == 0 ]]; then
     # an error while logging into 1Password
     echo "[ERROR] Failed to get a 1Password token, license data not updated."
@@ -37,7 +37,11 @@ function main {
   echo "Get license file from 1Password..."
   DETAILS=$(
     # shellcheck disable=SC2086
-    op ${OP_GET_CMD} "$OP_UUID" --session "$OP_TOKEN" --format json
+    op $OP_GET_CMD \
+      $OP_UUID \
+      --fields label=reg_code \
+      --format json |
+      jq -r '.value'
   )
   if [[ ! $? == 0 ]]; then
     # an error while fetching from 1p
