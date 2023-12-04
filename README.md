@@ -128,7 +128,7 @@ The shortest version relying on defaults and environment variables being set:
 steps:
   - uses: Kong/kong-license@master
     with:
-      password: ${{ secrets.PULP_PASSWORD }}
+      op-token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
   - run: kong start
     shell: bash
 ```
