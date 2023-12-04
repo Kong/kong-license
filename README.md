@@ -1,5 +1,7 @@
 # Kong Inc. internal test license script
 
+[![CI](https://github.com/Kong/kong-license/actions/workflows/ci.yml/badge.svg)](https://github.com/Kong/kong-license/actions/workflows/ci.yml)
+
 There are 3 scripts/actions;
 
 1. [user script](#user-script)
