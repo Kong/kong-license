@@ -25,9 +25,7 @@ command.
 
 ### 1Password Shared Vault Access
 
-Before continuing, make sure you have access to the "Github Actions" vault in 1Password. You can request access to this vault via the `#it` Kong slack channel. There is an example request [here](https://kongstrong.slack.com/archives/C5B4SU6KC/p1615993209037400) that can be referenced if it's not clear what is being requested from the IT team.
-
-Note that if you have configured your local 1Password with biometric security (e.g. Apple Face ID), this is not supported by the license script. You will have to add your accounts to the 1Password CLI tool [manually](https://developer.1password.com/docs/cli/sign-in-manually).
+Before continuing, make sure you have access to the "Github Actions" vault in 1Password. You can request access to this vault via [Kong's IT ServiceDesk](https://kong.freshservice.com/support/home).
 
 ### Installation
 
