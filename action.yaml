@@ -6,11 +6,11 @@ inputs:
     description: "Pulp username"
     required: false
     default: "admin"
-    deprecationMessage: "input ignored for compat"
+    deprecationMessage: "pulp no longer used, only 'op-token' is needed"
   password:
     description: "Pulp password"
     required: false
-    deprecationMessage: "input ignored for compat"
+    deprecationMessage: "pulp no longer used, only 'op-token' is needed"
   op-token:
     description: "1Password Service Account token"
     required: true
