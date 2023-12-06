@@ -7,6 +7,7 @@ There are 3 scripts/actions;
 1. [user script](#user-script)
 2. [automation script](#automation-script)
 3. [github action](#github-action)
+4. [directly via 1Password](#1password-directly)
 
 ## User script
 
@@ -131,6 +132,15 @@ steps:
       op-token: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
   - run: kong start
     shell: bash
+```
+
+### 1Password Directly
+
+The scripts and tooling in this repo, including the github action, are wrappers around 1Password Inc. provided tooling. Assuming your 1Password CLI is configured correctly, the below will output the valid license, bypassing this repo's tooling altogether. Your individual 1Password user will need access to the vault of course.
+
+```shell
+$ op read 'op://Github Actions/Monthly Kong Gateway Enterprise License/license key'
+{"license":{"payload":{"admin_seats":"<snip>
 ```
 
 ### Uploading a license
