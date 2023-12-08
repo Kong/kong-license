@@ -5,7 +5,7 @@
 # unknown flag: --account team_kong --raw
 #
 # rel: https://zsh.sourceforge.io/Doc/Release/Options.html
-function unset_zsh_opts(){
+function unset_zsh_opts() {
   if [[ "${SHELL}" =~ .*zsh$ && -n ${ZSH_NAME} ]]; then
     unsetopt SH_WORD_SPLIT
     trap - EXIT INT TERM
@@ -17,34 +17,31 @@ if [[ "${SHELL}" =~ .*zsh$ && -n ${ZSH_NAME} ]]; then
 fi
 
 # location where to store our files
-LOCATION=~/.kong-license-data
+LOCATION="${HOME}/.kong-license-data"
 
 # License file name
-FILE=license.json
+FILE='license.json'
 
 # OnePassword account name
-OP_ACCOUNT=team_kong
+OP_ACCOUNT='team-kong.1password.com'
 
-# License entry uuid, use `op item list | grep "License Credentials"` to find the right uuid.
-OP_UUID=qmcno52ta6oa2wkyeg3ta5466u
+# License entry uuid, use:
+#   op item get --vault 'Github Actions' 'Monthly Kong Gateway Enterprise License' | grep 'ID:'
+# to find the right uuid
+OP_UUID='ddwtjd6cmytlksanwl6xtkw23a'
 
 # Nothing to customize below
 FILENAME="$LOCATION/$FILE"
-KONG_PULP_URL="https://download.konghq.com/internal/kong-gateway/license.json"
-
 
 function cleanup {
   unset LOCATION FILE OP_ACCOUNT FILENAME
   unset PRODUCT COMPANY EXPIRE
   unset EXPIRE_EPOCH NOW_EPOCH WARN_EPOCH EXPIRE_IN
-  unset OP_TOKEN OP_UUID DETAILS
-  unset KONG_PULP_PWD KONG_PULP_USER KONG_PULP_URL
+  unset OP_UUID DETAILS
   unset NEW_KEY OLD_SIG NEW_SIG
   unset OP_SIGNIN_PARAMS OP_GET_CMD OP_SIGNOUT_PARAMS
-  unset OP_BIOMETRIC_UNLOCK_ENABLED
   unset_zsh_opts
 }
-
 
 if [[ "$1" == "--help" ]]; then
   echo "Utility to automatically set the Kong Enterprise license"
@@ -69,20 +66,15 @@ if [[ "$1" == "--help" ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
-
 if [[ "$1" == "--clean" ]]; then
-  rm "$FILENAME"  > /dev/null 2>&1
-  rmdir "$LOCATION"  > /dev/null 2>&1
+  rm "$FILENAME" >/dev/null 2>&1
+  rmdir "$LOCATION" >/dev/null 2>&1
   echo "Removed cached files"
   cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
-# Disable use of biometric auth if enabled (causes issues with account names and shorthands)
-# https://developer.1password.com/docs/cli/about-biometric-unlock
-export OP_BIOMETRIC_UNLOCK_ENABLED=false
-
-#Check 1Password CLI version
+# Check 1Password CLI version
 OP_VERSION=$(op --version)
 if [[ $? -ne 0 ]]; then
   echo "The 1Password CLI utility 'op' was not found"
@@ -96,21 +88,20 @@ if [[ $? -ne 0 ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
-#Now estabilished op CLI exists, need to set params for each version
-#Set for op_CLIv2
+# Now established op CLI exists, need to set params for each version
+# Set for op_CLIv2
 OP_SIGNIN_PARAMS="--account $OP_ACCOUNT --raw"
 OP_GET_CMD="item get"
 OP_SIGNOUT_PARAMS=""
 
 # Crude version check and set parameters to match
 if [[ $OP_VERSION == 1* ]]; then
-  echo "[INFO] Found 1Password CLI v1"
-  echo "[INFO] Please upgrade to v2 for longer support"
-  echo "[INFO] https://1password.com/downloads/command-line/"
-  #Set for op_CLIv1
-  OP_SIGNIN_PARAMS="$OP_ACCOUNT --output=raw"
-  OP_GET_CMD="get item"
-  OP_SIGNOUT_PARAMS="--session=$OP_TOKEN"
+  echo "[ERROR] Found 1Password CLI v1"
+  echo "[ERROR] Please upgrade to v2"
+  echo "[ERROR] https://1password.com/downloads/command-line/"
+  echo
+  cleanup
+  exit 1
 elif [[ $OP_VERSION != 2* ]]; then
   echo "The 1Password CLI utility 'op' version found is not supported by this script"
   echo "Currently supporting v1 (legacy) and v2 (latest as of 2022-05)"
@@ -125,7 +116,7 @@ elif [[ $OP_VERSION != 2* ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
 
-jq --version > /dev/null 2>&1
+jq --version >/dev/null 2>&1
 if [[ $? -ne 0 ]]; then
   echo "Utility 'jq' was not found, please make sure it is installed"
   echo "and available in the system path."
@@ -135,7 +126,6 @@ if [[ $? -ne 0 ]]; then
   cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 0 || exit 0
 fi
-
 
 # check if we're sourced or run
 if [[ "$0" == "${BASH_SOURCE[0]}" ]]; then
@@ -147,12 +137,10 @@ if [[ "$0" == "${BASH_SOURCE[0]}" ]]; then
   echo
 fi
 
-
 # create directory if it doesn't exist
 if [[ ! -d "$LOCATION" ]]; then
   mkdir "$LOCATION"
 fi
-
 
 # create outdated license if it doesn't exist
 if [[ ! -f "$FILENAME" ]]; then
@@ -163,14 +151,12 @@ EOL
   chmod +x "$FILENAME"
 fi
 
-
 # set the license data
 export KONG_LICENSE_DATA=$(<"$FILENAME")
-PRODUCT=$(jq -r '.license.payload.product_subscription' <<< "$KONG_LICENSE_DATA")
-COMPANY=$(jq -r '.license.payload.customer' <<< "$KONG_LICENSE_DATA")
-EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<< "$KONG_LICENSE_DATA")
+PRODUCT=$(jq -r '.license.payload.product_subscription' <<<"$KONG_LICENSE_DATA")
+COMPANY=$(jq -r '.license.payload.customer' <<<"$KONG_LICENSE_DATA")
+EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<<"$KONG_LICENSE_DATA")
 echo "$PRODUCT licensed to $COMPANY, license expires: $EXPIRE"
-
 
 # Parsing date is platform specific
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
@@ -194,10 +180,9 @@ else
   WARN_EPOCH=$(date -v +10d +%s)
 fi
 
-
-if (( NOW_EPOCH < EXPIRE_EPOCH )); then
+if ((NOW_EPOCH < EXPIRE_EPOCH)); then
   # license still valid
-  if (( WARN_EPOCH > EXPIRE_EPOCH )); then
+  if ((WARN_EPOCH > EXPIRE_EPOCH)); then
     # Expiry is within 10 days
     EXPIRE_IN=$((EXPIRE_EPOCH - NOW_EPOCH))
     EXPIRE_IN=$((EXPIRE_IN / 86400))
@@ -231,28 +216,48 @@ else
   fi
 fi
 
-echo
-# sign in to 1Password
-echo "Logging into 1Password..."
-OP_TOKEN=$(
-  # shellcheck disable=SC2086 
-  op signin $OP_SIGNIN_PARAMS
+DETAILS=$(
+  # shellcheck disable=SC2086
+  op $OP_GET_CMD \
+    $OP_UUID \
+    --fields label=reg_code \
+    --format json |
+    jq -r '.value' ||
+    true
 )
-if [[ ! $? == 0 ]]; then
-  # an error while logging into 1Password
-  echo "[ERROR] Failed to get a 1Password token, license data not updated."
-  cleanup
-  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
+
+if [ -n "$DETAILS" ]; then
+  echo
+  echo "[INFO] got 1Password item!"
+else
+  echo
+  # sign in to 1Password
+  echo "Logging into 1Password..."
+
+  # shellcheck disable=SC2086
+  op signin $OP_SIGNIN_PARAMS
+
+  if [[ ! $? == 0 ]]; then
+    # an error while logging into 1Password
+    echo "[ERROR] Failed to get a 1Password token, license data not updated."
+    cleanup
+    [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
+  fi
+
+  # Get the gateway license
+  echo "Get license file from 1Password..."
+  DETAILS=$(
+    # shellcheck disable=SC2086
+    op $OP_GET_CMD \
+      $OP_UUID \
+      --fields label=reg_code \
+      --format json |
+      jq -r '.value'
+  )
 fi
 
-# Get the Pulp credentials
-echo "Get credentials from 1Password..."
-DETAILS=$(
-  # shellcheck disable=SC2086 
-  op $OP_GET_CMD $OP_UUID --session $OP_TOKEN --format json
-)
-if [[ ! $? == 0 ]]; then
-  # an error while fetching the Pulp keys
+if [ -z "$DETAILS" ]; then
+  # an error while fetching from 1p
   echo "[ERROR] Failed to get the data from 1Password, license data not updated."
   # sign out again
   op signout
@@ -262,20 +267,11 @@ fi
 
 # sign out again
 echo "Sign out of 1Password..."
-# shellcheck disable=SC2086 
+# shellcheck disable=SC2086
 op signout $OP_SIGNOUT_PARAMS
 
-#Extract UID and PWD from 1Password response depending on version
-if [[ $OP_VERSION == 1* ]]; then
-  KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="password").value' | sed s/\"//g)
-  KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.details.fields[]? | select(.designation=="username").value' | sed s/\"//g)
-elif [[ $OP_VERSION == 2* ]]; then
-  KONG_PULP_PWD=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="password").value' | sed s/\"//g)
-  KONG_PULP_USER=$(printf "%s" "$DETAILS" | jq '.fields[]? | select(.id=="username").value' | sed s/\"//g)
-fi
-
 echo "Downloading license..."
-NEW_KEY=$(curl -s -L -u"$KONG_PULP_USER:$KONG_PULP_PWD" "$KONG_PULP_URL")
+NEW_KEY=$(printf "%s" "$DETAILS")
 if [[ ! $NEW_KEY == *"signature"* || ! $NEW_KEY == *"payload"* ]]; then
   echo "[ERROR] failed to download the Kong Enterprise license file
     $NEW_KEY"
@@ -283,24 +279,23 @@ if [[ ! $NEW_KEY == *"signature"* || ! $NEW_KEY == *"payload"* ]]; then
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
-
 # validate it is different
 OLD_SIG=$(jq -r '.license.signature' <<<"$KONG_LICENSE_DATA")
 NEW_SIG=$(jq -r '.license.signature' <<<"$NEW_KEY")
 
 if [[ "$OLD_SIG" == "$NEW_SIG" ]]; then
-  echo "[ERROR] The new license is the same as the old one, seems the Pulp license was not updated yet."
+  echo "[ERROR] The new license is the same as the old one, seems the 1Password license item has not updated yet."
   cleanup
   [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
 fi
 
-echo "$NEW_KEY" > "$FILENAME"
+echo "$NEW_KEY" >"$FILENAME"
 echo license updated!
 
 # set the license data
 export KONG_LICENSE_DATA=$(<"$FILENAME")
-PRODUCT=$(jq -r '.license.payload.product_subscription' <<< "$KONG_LICENSE_DATA")
-COMPANY=$(jq -r '.license.payload.customer' <<< "$KONG_LICENSE_DATA")
-EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<< "$KONG_LICENSE_DATA")
+PRODUCT=$(jq -r '.license.payload.product_subscription' <<<"$KONG_LICENSE_DATA")
+COMPANY=$(jq -r '.license.payload.customer' <<<"$KONG_LICENSE_DATA")
+EXPIRE=$(jq -r '.license.payload.license_expiration_date' <<<"$KONG_LICENSE_DATA")
 echo "$PRODUCT licensed to $COMPANY, license expires: $EXPIRE"
 cleanup

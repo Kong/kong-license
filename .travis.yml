@@ -1,4 +1,0 @@
-dist: bionic
-
-script:
-- make lint

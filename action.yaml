@@ -1,34 +1,44 @@
-name: 'Kong License'
-description: 'Fetches the Kong enterprise license for Kong CI systems'
+name: "Kong License"
+description: "Fetches the Kong enterprise license for Kong CI systems"
 
 inputs:
   username:
-    description: 'Pulp username'
-    required: true
-    default: 'admin'
+    description: "Pulp username"
+    required: false
+    default: "admin"
+    deprecationMessage: "pulp no longer used, only 'op-token' is needed"
   password:
-    description: 'Pulp password'
+    description: "Pulp password"
+    required: false
+    deprecationMessage: "pulp no longer used, only 'op-token' is needed"
+  op-token:
+    description: "1Password Service Account token"
     required: true
 
 outputs:
   license:
     description: "Kong license"
-    value: ${{ steps.auto-license.outputs.license }}
+    value: ${{ steps.onep.outputs.KONG_LICENSE_DATA }}
 
 runs:
   using: "composite"
   steps:
-  - id: auto-license
-    run: |
-      PULP_USERNAME="${{ inputs.username }}"
-      KONG_LICENSE_DATA=$(${{ github.action_path }}/auto-license.sh <<< "${{ inputs.password }}")
-      if [ $? -ne 0 ]; then
-        exit 1
-      fi
-      echo ::add-mask::$(jq -r '.license.signature' <<< "$KONG_LICENSE_DATA")
-      echo ::add-mask::$(jq -r '.license.payload.license_key' <<< "$KONG_LICENSE_DATA")
-      echo "license=$KONG_LICENSE_DATA" >> $GITHUB_OUTPUT
-      echo 'KONG_LICENSE_DATA<<EOF' >> $GITHUB_ENV
-      echo $KONG_LICENSE_DATA >> $GITHUB_ENV
-      echo 'EOF' >> $GITHUB_ENV
-    shell: bash
+    - name: Load license
+      id: onep
+      uses: 1password/load-secrets-action@v1
+      with:
+        export-env: false
+      env:
+        OP_SERVICE_ACCOUNT_TOKEN: ${{ inputs.op-token }}
+        KONG_LICENSE_DATA: "op://Github Actions/Monthly Kong Gateway Enterprise License/license key"
+
+    - name: Mask
+      env:
+        KONG_LICENSE_DATA: ${{ steps.onep.outputs.KONG_LICENSE_DATA }}
+      run: |
+        echo ::add-mask::$(jq -r '.license.signature' <<< "$KONG_LICENSE_DATA")
+        echo ::add-mask::$(jq -r '.license.payload.license_key' <<< "$KONG_LICENSE_DATA")
+        echo 'KONG_LICENSE_DATA<<EOF' >> $GITHUB_ENV
+        echo $KONG_LICENSE_DATA >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
+      shell: "bash"
