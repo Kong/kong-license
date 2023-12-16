@@ -22,9 +22,6 @@ LOCATION="${HOME}/.kong-license-data"
 # License file name
 FILE='license.json'
 
-# OnePassword account name
-OP_ACCOUNT='team-kong.1password.com'
-
 # License entry uuid, use:
 #   op item get --vault 'Github Actions' 'Monthly Kong Gateway Enterprise License' | grep 'ID:'
 # to find the right uuid
@@ -39,7 +36,7 @@ function cleanup {
   unset EXPIRE_EPOCH NOW_EPOCH WARN_EPOCH EXPIRE_IN
   unset OP_UUID DETAILS
   unset NEW_KEY OLD_SIG NEW_SIG
-  unset OP_SIGNIN_PARAMS OP_GET_CMD OP_SIGNOUT_PARAMS
+  unset OP_SIGNIN_PARAMS OP_GET_CMD
   unset_zsh_opts
 }
 
@@ -90,9 +87,7 @@ fi
 
 # Now established op CLI exists, need to set params for each version
 # Set for op_CLIv2
-OP_SIGNIN_PARAMS="--account $OP_ACCOUNT --raw"
 OP_GET_CMD="item get"
-OP_SIGNOUT_PARAMS=""
 
 # Crude version check and set parameters to match
 if [[ $OP_VERSION == 1* ]]; then
@@ -216,6 +211,26 @@ else
   fi
 fi
 
+if {
+  op whoami 2>&1 | grep -qs '@konghq.com'
+} || {
+  op account ls 2>&1 | grep -qs 'team-kong'
+}; then
+  echo 'Already signed into Kong 1Password account'
+else
+  echo
+
+  # an error while logging into 1Password
+  echo "[ERROR] Not signed into Kong 1Password account."
+  echo "Please ensure that your 1Password CLI is signed into Kong's 1Password account."
+  echo
+  echo "The easiest way to achieve this is to follow the official documentation."
+  echo
+  echo "See: https://developer.1password.com/docs/cli/app-integration/"
+  cleanup
+  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
+fi
+
 DETAILS=$(
   # shellcheck disable=SC2086
   op $OP_GET_CMD \
@@ -230,19 +245,6 @@ if [ -n "$DETAILS" ]; then
   echo
   echo "[INFO] got 1Password item!"
 else
-  echo
-  # sign in to 1Password
-  echo "Logging into 1Password..."
-
-  # shellcheck disable=SC2086
-  op signin $OP_SIGNIN_PARAMS
-
-  if [[ ! $? == 0 ]]; then
-    # an error while logging into 1Password
-    echo "[ERROR] Failed to get a 1Password token, license data not updated."
-    cleanup
-    [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
-  fi
 
   # Get the gateway license
   echo "Get license file from 1Password..."
@@ -255,20 +257,6 @@ else
       jq -r '.value'
   )
 fi
-
-if [ -z "$DETAILS" ]; then
-  # an error while fetching from 1p
-  echo "[ERROR] Failed to get the data from 1Password, license data not updated."
-  # sign out again
-  op signout
-  cleanup
-  [[ "$0" != "${BASH_SOURCE[0]}" ]] && return 1 || exit 1
-fi
-
-# sign out again
-echo "Sign out of 1Password..."
-# shellcheck disable=SC2086
-op signout $OP_SIGNOUT_PARAMS
 
 echo "Downloading license..."
 NEW_KEY=$(printf "%s" "$DETAILS")
