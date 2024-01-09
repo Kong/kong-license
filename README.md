@@ -23,9 +23,16 @@ up a new terminal, so it is easy to pass to Kong. 10 days before the license
 expires it will start printing warnings, accompanied by the proper update
 command.
 
-### 1Password Shared Vault Access
+### 1Password Settings & Shared Vault Access
 
-Before continuing, make sure you have access to the "Github Actions" vault in 1Password. You can request access to this vault via [Kong's IT ServiceDesk](https://kong.freshservice.com/support/home).
+Before continuing:
+
+1. Ensure you have access to the "Github Actions" vault in 1Password. You can request access to this vault via [Kong's IT ServiceDesk](https://kong.freshservice.com/support/home).
+2. Ensure you have "Integrate with 1Password CLI" enabled within the 1Password desktop app. The setting can be found in the 1Password desktop app settings under    
+
+   "Developer" *>* "Command-Line Interface (CLI) *>* "Integrate with 1Password CLI" (checkbox)
+
+![](img/1Password_Settings.png)
 
 ### Installation
 
