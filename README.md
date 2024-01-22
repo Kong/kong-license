@@ -170,3 +170,23 @@ If you see an error similar to the following:
 ```
 
 This means that you don't have access to the "Github Actions" vault in 1Password. See [above](#1password-shared-vault-access) for more information on how to get the necessary access.
+
+#### "These features are unavailable on your system"
+
+If you see an error similar to the following:
+
+```code
+These features are unavailable on your system
+```
+
+You may need to manually allow 1Password to run in the background by navigating to General _>_ Login Items _>_ "Allow in the Background"
+
+![System Preferences](img/r7ocrvunfl6q.png)
+
+#### 'unknown command "read" for "op"'
+
+You are likely running 1Password CLI version 1(.x.x). You can use `op --version` to confirm which version you are running.
+
+Version 2+ is required to use this tool. Please follow this tutorial on removing version 1 and installing version 2: [https://developer.1password.com/docs/cli/upgrade](https://developer.1password.com/docs/cli/upgrade)
+
+Note: you will not be able to use `op update` to update the version of 1Password CLI you are running. You must install version 2 (manually).
