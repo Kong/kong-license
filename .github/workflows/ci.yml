@@ -12,6 +12,7 @@ on:
 
 jobs:
   lint:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: Lint
     runs-on: ubuntu-latest
     steps:
@@ -19,6 +20,7 @@ jobs:
       - run: make lint
 
   functional:
+    timeout-minutes: ${{ fromJSON(vars.GHA_DEFAULT_TIMEOUT) }}
     name: Functional Test
     runs-on: ubuntu-latest
     steps:
