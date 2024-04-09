@@ -25,7 +25,7 @@ runs:
   steps:
     - name: Load license
       id: onep
-      uses: 1password/load-secrets-action@v1
+      uses: 1password/load-secrets-action@v2
       with:
         export-env: false
       env:
