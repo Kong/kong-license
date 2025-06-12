@@ -46,7 +46,7 @@ if [[ "$1" == "--help" ]]; then
   echo
   echo "Prerequisites:"
   echo " - 'jq' installed, see https://stedolan.github.io/jq/"
-  echo " - 1Password CLI installed (Versions 1 and 2 are currently supported)"
+  echo " - 1Password CLI installed (Version 2 is currently supported)"
   echo
   echo "Usage:"
   echo "    ${BASH_SOURCE[0]} [--help | --no-update | --update | --clean]"
