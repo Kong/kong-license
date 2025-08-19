@@ -25,10 +25,9 @@ runs:
   steps:
     - name: Load license
       id: onep
-      uses: 1password/load-secrets-action@13f58eec611f8e5db52ec16247f58c508398f3e6 # v.3.0.0
+      uses: 1password/load-secrets-action@v2
       with:
         export-env: false
-        version: 2.31.1
       env:
         OP_SERVICE_ACCOUNT_TOKEN: ${{ inputs.op-token }}
         KONG_LICENSE_DATA: "op://Github Actions/Monthly Kong Gateway Enterprise License/license key"
